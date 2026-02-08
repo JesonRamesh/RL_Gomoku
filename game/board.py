@@ -52,7 +52,7 @@ class Board:
         # black background for grid
         grid_w = self.cols * self.cell_pitch
         grid_h = self.rows * self.cell_pitch
-        pygame.draw.rect(self.screen, WHITE, pygame.Rect(self.offset_x-2, self.offset_y-2, grid_w-10, grid_h-10))
+        pygame.draw.rect(self.screen, WHITE, pygame.Rect(self.offset_x-2, self.offset_y-2, grid_w-35, grid_h-35))
         
         # draw veritcal lines
         for col in range(self.cols):
