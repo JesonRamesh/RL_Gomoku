@@ -1,8 +1,8 @@
 import pygame
-from board import Board
+from board2 import Board
 
 
-
+pygame.init()
 board = Board(15)
 
 def main():
@@ -10,7 +10,7 @@ def main():
 
     running = True
     while running:
-
+        
         board.draw()
 
         for event in pygame.event.get():

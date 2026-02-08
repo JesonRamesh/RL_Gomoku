@@ -26,25 +26,24 @@ class Board:
 
         # to center the grid
         
-        grid_width = self.cols * self.cell_pitch
-        grid_height = self.rows * self.cell_pitch
+        grid_size_px = (self.rows - 1) * self.cell_pitch # grid size in pixels
 
-        self.offset_x = (self.Window_Width - grid_width) // 2
-        self.offset_y = (self.Window_Height - grid_height) // 2
+        self.offset_x = (self.Window_Width - grid_size_px) // 2
+        self.offset_y = (self.Window_Height - grid_size_px) // 2
 
         
         
         self.screen.fill(LIGHT_YELLOW)
 
-        # black background for grid
-        pygame.draw.rect(self.screen, BLACK, pygame.Rect(self.offset_x-2, self.offset_y+28, grid_width+2, grid_height+2))
-        
-        # draw grid
+        # draw veritcal lines
+        for col in range(self.cols):
+            x = self.offset_x + col*self.cell_pitch
+            pygame.draw.line(self.screen, BLACK, (x, self.offset_y), (x, self.offset_y + grid_size_px), 2)
+        # draw horizontal
         for row in range(self.rows):
-            for col in range(self.cols):
-                self.colour = WHITE if self.grid[row][col] == 0 else BLACK
-                pygame.draw.rect(self.screen, self.colour, ((col * self.cell_pitch)+self.offset_x, (row * self.cell_pitch)+self.offset_y+30, self.cell_size, self.cell_size) )
-
+            y = self.offset_y + row*self.cell_pitch
+            pygame.draw.line(self.screen, BLACK, (self.offset_x, y), (self.offset_x + grid_size_px, y), 2)
+        
         pygame.display.flip()
         self.clock.tick(60)
 
