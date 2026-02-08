@@ -25,7 +25,7 @@ class GomokuLogic:
             raise ValueError("Move out of bounds")
         if self.board[row, col] != 0 or self.game_over:
             raise ValueError("Invalid move")
-
+        
         self.board[row, col] = self.current_player
 
         if self.check_win(row, col):

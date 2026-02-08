@@ -14,11 +14,16 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-            elif event.type == pygame.MOUSEBUTTONDOWN and not game.game_over:
+            elif event.type == pygame.MOUSEBUTTONDOWN:
                 pos = pygame.mouse.get_pos()
                 board.mouse_click(pos)
                 if game.game_over:
-                    print(f"Game Over! Winner: {game.winner}")
+                    if game.winner == 1:
+                        print("Game Over! Winner: Player 1")
+                    elif game.winner == -1: 
+                        print("Game Over! Winner: Player 2")
+                    else: 
+                        print("Game Over! Draw!")
 
     pygame.quit()
     sys.exit()
