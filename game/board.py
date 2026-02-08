@@ -24,10 +24,10 @@ class Board:
         # center the grid
         self.cell_pitch = 40
         self.cell_size = 38
-        grid_width = self.cols * self.cell_pitch
-        grid_height = self.rows * self.cell_pitch
-        self.offset_x = (self.Window_Width - grid_width) // 2
-        self.offset_y = (self.Window_Height - grid_height) // 2
+        self.grid_size_px = (self.rows - 1) * self.cell_pitch # grid size in pixels
+
+        self.offset_x = (self.Window_Width - self.grid_size_px) // 2
+        self.offset_y = (self.Window_Height - self.grid_size_px) // 2
 
 
     def draw(self):
@@ -36,14 +36,20 @@ class Board:
         # black background for grid
         grid_w = self.cols * self.cell_pitch
         grid_h = self.rows * self.cell_pitch
-        pygame.draw.rect(self.screen, BLACK, pygame.Rect(self.offset_x-2, self.offset_y-2, grid_w+2, grid_h+2))
+        pygame.draw.rect(self.screen, WHITE, pygame.Rect(self.offset_x-2, self.offset_y-2, grid_w-10, grid_h-10))
+        
+        # draw veritcal lines
+        for col in range(self.cols):
+            x = self.offset_x + col*self.cell_pitch
+            pygame.draw.line(self.screen, BLACK, (x, self.offset_y), (x, self.offset_y + self.grid_size_px), 2)
+        # draw horizontal
+        for row in range(self.rows):
+            y = self.offset_y + row*self.cell_pitch
+            pygame.draw.line(self.screen, BLACK, (self.offset_x, y), (self.offset_x + self.grid_size_px, y), 2)
         
         # draw grid
         for row in range(self.rows):
             for col in range(self.cols):
-                x = self.offset_x + col * self.cell_pitch
-                y = self.offset_y + row * self.cell_pitch
-                pygame.draw.rect(self.screen, WHITE, (x, y, self.cell_size, self.cell_size))
 
                 # draw the stones
                 stone = self.game_logic.board[row, col]
