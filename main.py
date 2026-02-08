@@ -13,15 +13,21 @@ def main():
         board.draw()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                running = False
-            elif event.type == pygame.MOUSEBUTTONDOWN and not game.game_over:
+                # If the game is not over, prompt the user before quitting
+                if not game.game_over:
+                    running = False
+                    pygame.quit()
+                    sys.exit()
+
+            elif event.type == pygame.MOUSEBUTTONDOWN:
                 pos = pygame.mouse.get_pos()
                 board.mouse_click(pos)
-                if game.game_over:
-                    print(f"Game Over! Winner: {game.winner}")
 
-    pygame.quit()
-    sys.exit()
+                if game.game_over:
+                    if board.quit_button.is_clicked(pos):
+                        running = False
+                        pygame.quit()
+                        sys.exit()
 
 
 if __name__ == "__main__":

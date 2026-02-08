@@ -4,6 +4,8 @@ from .gomoku_env import Button
 
 # colours
 BLACK = (0, 0, 0)
+BLUE = (0, 0, 255)
+TURQUOISE = (64, 224, 208)
 WHITE = (255, 255, 255)
 RED = (255, 0, 0)
 GREEN = (0, 255, 100)
@@ -37,7 +39,8 @@ class Board:
         self.game_started = False
 
         self.start_button = Button((200, 15, 120, 40), "Start", colour=GREEN)
-        self.reset_button = Button((400, 15, 120, 40), "Reset", colour=RED)
+        self.reset_button = Button((400, 15, 120, 40), "Reset", colour=TURQUOISE)
+        self.quit_button = Button((600, 15, 120, 40), "Quit", colour=RED)
 
     def draw_stones(self):
         self.stone_radius = 18
@@ -98,6 +101,7 @@ class Board:
 
         self.start_button.draw(self.screen, self.font)
         self.reset_button.draw(self.screen, self.font)
+        self.quit_button.draw(self.screen, self.font)
 
         # Show turns
 
@@ -128,7 +132,9 @@ class Board:
             self.game_logic.reset_game()
             self.game_started = False
             return
-
+        if self.quit_button.is_clicked(pos):
+            pygame.quit()
+            sys.exit()
         # Board
         if not self.game_started or self.game_logic.game_over:
             return
