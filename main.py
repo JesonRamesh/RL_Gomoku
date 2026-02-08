@@ -3,6 +3,7 @@ import pygame
 from game.logic import GomokuLogic
 from game.board import Board
 
+
 def main():
     game = GomokuLogic(board_size=15)
     board = Board(game)
@@ -19,12 +20,9 @@ def main():
                 if game.game_over:
                     print(f"Game Over! Winner: {game.winner}")
 
-        
-
     pygame.quit()
     sys.exit()
 
 
 if __name__ == "__main__":
     main()
-    

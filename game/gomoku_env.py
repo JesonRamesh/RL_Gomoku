@@ -1,8 +1,8 @@
 import pygame
 
-class Button:
 
-    def __init__(self, rect, text, colour=(0,0,0)):
+class Button:
+    def __init__(self, rect, text, colour=(0, 0, 0)):
         self.rect = pygame.Rect(rect)
         self.text = text
         self.colour = colour
