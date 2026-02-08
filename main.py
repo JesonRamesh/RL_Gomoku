@@ -14,7 +14,7 @@ def main():
                 running = False
             elif event.type == pygame.MOUSEBUTTONDOWN and not game.game_over:
                 pos = pygame.mouse.get_pos()
-                view.get_cell_from_mouse_pos(pos)
+                view.mouse_click(pos)
                 if game.game_over:
                     print(f"Game Over! Winner: {game.winner}")
 

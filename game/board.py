@@ -29,6 +29,22 @@ class Board:
         self.offset_x = (self.Window_Width - self.grid_size_px) // 2
         self.offset_y = (self.Window_Height - self.grid_size_px) // 2
 
+        
+    def draw_stones(self):
+        self.stone_radius = 18
+        # draw grid
+        for row in range(self.rows):
+            for col in range(self.cols):
+
+                # draw the stones
+                stone = self.game_logic.board[row, col]
+                if stone != 0:
+                    x = self.offset_x + col *self.cell_pitch
+                    y = self.offset_y + row * self.cell_pitch
+
+                    color = BLACK if stone == 1 else RED
+                    pygame.draw.circle(self.screen, color, (x, y), self.stone_radius)
+
 
     def draw(self):
         self.screen.fill(LIGHT_YELLOW)
@@ -47,26 +63,21 @@ class Board:
             y = self.offset_y + row*self.cell_pitch
             pygame.draw.line(self.screen, BLACK, (self.offset_x, y), (self.offset_x + self.grid_size_px, y), 2)
         
-        # draw grid
-        for row in range(self.rows):
-            for col in range(self.cols):
-
-                # draw the stones
-                stone = self.game_logic.board[row, col]
-                if stone != 0:
-                    color = BLACK if stone == 1 else RED
-                    pygame.draw.circle(self.screen, color, (x + self.cell_size // 2, y + self.cell_size // 2), self.cell_size // 2 - 2)
+        self.draw_stones()
 
         pygame.display.flip()
         self.clock.tick(60)
 
-    def get_cell_from_mouse_pos(self, pos):
-        x, y = pos
-        col = (x - self.offset_x) // self.cell_pitch
-        row = (y - self.offset_y) // self.cell_pitch
+    def mouse_click(self, pos):
+        mouse_x, mouse_y = pos
+        col = round((mouse_x - self.offset_x) / self.cell_pitch)
+        row = round((mouse_y - self.offset_y) / self.cell_pitch)
+        if 0 <= row < self.rows and 0 <= col < self.cols:
         
-        self.game_logic.make_move(row, col)
+            self.game_logic.make_move(row, col)
         return None
+    
+    
 
 
 
