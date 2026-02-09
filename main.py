@@ -1,5 +1,6 @@
 import sys
 import pygame
+from agents.random_agent import rand_agent
 from game.logic import GomokuLogic
 from game.board import Board
 
@@ -7,6 +8,8 @@ from game.board import Board
 def main():
     game = GomokuLogic(board_size=15)
     board = Board(game)
+    ran_bot = rand_agent(player_id=-1)
+
 
     running = True
 
@@ -16,8 +19,20 @@ def main():
             if event.type == pygame.QUIT:
                 running = False
             elif event.type == pygame.MOUSEBUTTONDOWN:
-                pos = pygame.mouse.get_pos()
-                board.mouse_click(pos)
+                if game.current_player == 1:
+                    pos = pygame.mouse.get_pos()
+                    board.mouse_click(pos)
+                   
+     
+        # random bot move
+        if not game.game_over and game.current_player == -1:  
+            move = ran_bot.play_move(game.board)
+         
+            if move:
+                game.make_move(*move)   # pass in tuple coordinates from move
+
+        pygame.display.flip()
+
 
     pygame.quit()
     sys.exit()
