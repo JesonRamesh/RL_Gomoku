@@ -19,9 +19,9 @@ def main():
             if event.type == pygame.QUIT:
                 running = False
             elif event.type == pygame.MOUSEBUTTONDOWN:
-                if game.current_player == 1:
-                    pos = pygame.mouse.get_pos()
-                    board.mouse_click(pos)
+                
+                pos = pygame.mouse.get_pos()
+                board.mouse_click(pos)
                    
      
         # random bot move
@@ -29,7 +29,11 @@ def main():
             move = ran_bot.play_move(game.board)
          
             if move:
-                game.make_move(*move)   # pass in tuple coordinates from move
+                try:
+                    game.make_move(*move)   # pass in tuple coordinates from move
+                except ValueError:
+                    pass
+
 
         pygame.display.flip()
 
