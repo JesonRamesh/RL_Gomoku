@@ -22,10 +22,12 @@ def main():
                 
                 pos = pygame.mouse.get_pos()
                 board.mouse_click(pos)
+               
                    
-     
+       
         # random bot move
-        if not game.game_over and game.current_player == -1:  
+        if not game.game_over and game.current_player == -1: 
+            
             move = ran_bot.play_move(game.board)
          
             if move:
