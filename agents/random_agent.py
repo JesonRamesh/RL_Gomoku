@@ -1,13 +1,14 @@
+from agents.base_agent import BaseAgent
 import random
 import numpy as np
 
-class RandomAgent:
+class RandomAgent(BaseAgent):
 
-    def __init__(self, player):
+    def __init__(self, player_id):
         """
         Player: 1 (Black) and -1 (Red)
         """
-        self.player = player
+        super().__init__(player_id)
 
     def predict(self, board_state):
         """
