@@ -145,6 +145,9 @@ class Board:
         # Board
         if not self.game_started or self.game_logic.game_over:
             return
+        
+        if self.game_logic.current_player != 1:
+            return
 
         mouse_x, mouse_y = pos
         col = round((mouse_x - self.offset_x) / self.cell_pitch)
