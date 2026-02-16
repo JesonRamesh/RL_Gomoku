@@ -1,23 +1,28 @@
+from agents.base_agent import BaseAgent
 import random
+import numpy as np
 
+class RandomAgent(BaseAgent):
 
-class rand_agent:
     def __init__(self, player_id):
-        self.player_id = player_id
+        """
+        Player: 1 (Black) and -1 (Red)
+        """
+        super().__init__(player_id)
 
-    def play_move(self, board):
+    def predict(self, board_state):
+        """
+        Return a random valid move given the current board state.
+        """
+        # Find all coordinates where the board is empty
+        empty_spots = np.where(board_state == 0)
 
+        # Zip them together to get a list of (row,col)
+        valid_moves = list(zip(empty_spots[0], empty_spots[1]))
 
-        # make list of possible moves
-        empty_spaces = []
-        
-
-        for r in range(len(board)):
-            for c in range(len(board)):
-                if board[r][c] == 0:
-                    empty_spaces.append((r,c))
-            
-        if not empty_spaces:
+        # If there are no valid moves, return None
+        if not valid_moves:
             return None
         
-        return random.choice(empty_spaces)
+        # Choose one random move
+        return random.choice(valid_moves)
