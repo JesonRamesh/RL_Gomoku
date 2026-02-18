@@ -34,26 +34,34 @@ class GomokuEnv:
 
     def step(self, action):
         """
-        Exectutes a move and returns (next state, reward, done, info)
+        Executes a move and returns (next state, reward, done, info)
         """
         row, col = action
         reward = 0
         done = False
         info = {}
 
+        # Remember who made this move BEFORE make_move() is called
+        moving_player = self.logic.current_player
+
         try:
             self.logic.make_move(row, col)
         except ValueError:
             # If the agent tries to make an illegal move, give a big negative reward and end the game immediately
-            return np.copy(self.logic.board), -10, True, {"error": "Illegal Move"}
-
+            return np.copy(self.logic.board), -1, True, {"error": "Illegal Move"}
+        
         if self.logic.game_over:
             done = True
-            if self.logic.winner == self.logic.current_player * -1:
-                # The player who made the last move won
-                reward = 10
+            if self.logic.winner == moving_player:
+                # The player who just moved won
+                reward = 1.0
             elif self.logic.winner == 0:
                 # Draw
                 reward = 0
+            else:
+                # The player who just moved lost
+                reward = -1.0
+        else:
+            reward = 0.0 # Non-terminal move, no reward
 
         return np.copy(self.logic.board), reward, done, info
