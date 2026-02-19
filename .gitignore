@@ -146,6 +146,8 @@ cython_debug/
 # RL/ML specific
 models/
 checkpoints/
+models_baseline/
+models_sparse/
 runs/
 logs/
 tensorboard/
@@ -153,6 +155,7 @@ wandb/
 *.pkl
 *.h5
 *.pth
+*.pt
 *.ckpt
 
 # Data files
