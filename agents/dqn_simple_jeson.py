@@ -11,7 +11,7 @@ class DQNetwork(nn.Module):
     """
     Simple CNN architecture (proven to achieve 100% win rate).
     """
-    def __init__(self, board_size=15):
+    def __init__(self, board_size=9):
         super(DQNetwork, self).__init__()
         self.board_size = board_size
         
@@ -78,7 +78,7 @@ class ReplayBuffer:
 
 
 class DQNAgent(BaseAgent):
-    def __init__(self, player_id, board_size=15, learning_rate=1e-4, gamma=0.99, 
+    def __init__(self, player_id, board_size=9, learning_rate=1e-4, gamma=0.99, 
                  epsilon_start=1.0, epsilon_end=0.1, epsilon_decay=0.995, 
                  buffer_capacity=100000, target_update_frequency=1000):
         super().__init__(player_id)

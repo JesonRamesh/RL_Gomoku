@@ -2,6 +2,8 @@
 import sys
 import pygame
 import argparse
+from agents.dqn_jeson import DQNAgent
+from agents.dqn_simple_jeson import DQNAgent as SimpleDQNAgent
 from game.logic import GomokuLogic
 from game.board import Board
 from game.match import eval_agents
@@ -17,15 +19,20 @@ def main(headless=False, num_games=100):
         agent2 = RandomAgent(player_id=-1)
 
         # Run evaluation and get results dictionary
-        results = eval_agents(agent1, agent2, num_games=num_games)
+        results = eval_agents(agent1, agent2, num_games=num_games, board_size=9)
         return results
 
     # non-headless mode (PyGame)
-    game = GomokuLogic(board_size=15)
+    game = GomokuLogic(board_size=9)
     board = Board(game)
 
     player_1 = HumanAgent(player_id=1)
-    player_2 = RandomAgent(player_id=-1)
+    #player_2 = RandomAgent(player_id=-1)
+
+    player_2 = SimpleDQNAgent(player_id=-1, board_size=9)
+    player_2.load_model("models_phase4_v2/phase4_best_strategic.pt")
+    #player_2.load_model("models_phase2b/stage6_challenge_final.pt")
+    player_2.epsilon = 0.0  # Pure exploitation
 
     players = {1: player_1, -1: player_2}
 

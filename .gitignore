@@ -158,6 +158,22 @@ wandb/
 *.pt
 *.ckpt
 
+# Project model directories (large .pt + .png files, not tracked)
+models_baseline_9x9/
+models_phase2/
+models_phase3/
+models_phase4/
+models_phase4_v2/
+
+# Archive of old experiments (contains large model files)
+archive/
+
+# Coursework brief and development artifacts
+RLCW2526.pdf
+context_prompt.md
+phase_2_3_wbs.md
+training_progress_summary.md
+
 # Data files
 data/
 datasets/
