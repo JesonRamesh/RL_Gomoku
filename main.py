@@ -1,5 +1,6 @@
 # main.py
 import sys
+import os
 import pygame
 import argparse
 from game.logic import GomokuLogic
@@ -9,23 +10,35 @@ from game.match import eval_agents
 
 from agents.base_agent import HumanAgent
 from agents.random_agent import RandomAgent
+from agents.vin_agent import RLAgent
 
 
 def main(headless=False, num_games=100):
     if headless:
-        agent1 = RandomAgent(player_id=1)  # Replace with whatever agents
-        agent2 = RandomAgent(player_id=-1)
+        agent1 = HumanAgent(player_id=1)  # Replace with whatever agents
+        agent2 = RLAgent(player_id=-1)
 
         # Run evaluation and get results dictionary
         results = eval_agents(agent1, agent2, num_games=num_games)
         return results
 
+
     # non-headless mode (PyGame)
-    game = GomokuLogic(board_size=15)
+    # load trained model
+    rl_agent = RLAgent(player_id=-1, board_size=7)
+ 
+    if os.path.exists("gomoku_best_model.pth"):
+        print("Loading trained model...")
+        rl_agent.load("gomoku_best_model.pth")
+    else:
+        print("No saved model found, using untrained agent.")
+
+
+    game = GomokuLogic(board_size=7)
     board = Board(game)
 
     player_1 = HumanAgent(player_id=1)
-    player_2 = RandomAgent(player_id=-1)
+    player_2 = rl_agent
 
     players = {1: player_1, -1: player_2}
 

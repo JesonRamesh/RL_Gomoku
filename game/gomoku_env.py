@@ -49,7 +49,7 @@ class GomokuEnv:
 
         if self.logic.game_over:
             done = True
-            if self.logic.winner == self.logic.current_player * -1:
+            if self.logic.winner == self.logic.current_player:
                 # The player who made the last move won
                 reward = 10
             elif self.logic.winner == 0:
