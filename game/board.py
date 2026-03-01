@@ -13,7 +13,7 @@ LIGHT_YELLOW = (255, 240, 210)  # 255, 250, 205
 
 
 class Board:
-    def __init__(self, game_logic, window_width=900, window_height=700):
+    def __init__(self, game_logic, window_width=650, window_height=550):
 
         pygame.init()
         self.game_logic = game_logic
@@ -110,7 +110,6 @@ class Board:
         self.quit_button.draw(self.screen, self.font)
 
         # Show turns
-
         if not self.game_started:
             status = "Ready To Play"
         elif self.game_logic.game_over:
@@ -130,7 +129,6 @@ class Board:
 
     def mouse_click(self, pos):
         # Buttons
-
         if self.start_button.is_clicked(pos):
             self.game_started = True
             return

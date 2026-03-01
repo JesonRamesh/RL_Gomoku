@@ -2,7 +2,7 @@ import numpy as np
 
 
 class GomokuLogic:
-    def __init__(self, board_size=15):
+    def __init__(self, board_size=9):
         self.board_size = board_size  # Initialize the game board as a 2D numpy array filled with zeros (empty cells)
         self.board = np.zeros(
             (board_size, board_size), dtype=int
