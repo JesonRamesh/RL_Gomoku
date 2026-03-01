@@ -25,7 +25,7 @@ def main(headless=False, num_games=100):
 
     # non-headless mode (PyGame)
     # load trained model
-    rl_agent = RLAgent(player_id=-1, board_size=7)
+    rl_agent = RLAgent(player_id=-1, board_size=9)
  
     if os.path.exists("gomoku_best_model.pth"):
         print("Loading trained model...")
@@ -34,7 +34,7 @@ def main(headless=False, num_games=100):
         print("No saved model found, using untrained agent.")
 
 
-    game = GomokuLogic(board_size=7)
+    game = GomokuLogic(board_size=9)
     board = Board(game)
 
     player_1 = HumanAgent(player_id=1)

@@ -54,13 +54,13 @@ class GomokuEnv:
             done = True
             if self.logic.winner == moving_player:
                 # The player who just moved won
-                reward = 1.0
+                reward = 30
             elif self.logic.winner == 0:
                 # Draw
                 reward = 0
             else:
                 # The player who just moved lost
-                reward = -1.0
+                reward = -30
         else:
             reward = 0.0 # Non-terminal move, no reward
 

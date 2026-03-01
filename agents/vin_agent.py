@@ -7,7 +7,7 @@ import copy
 
 
 class RLAgent(BaseAgent):
-    def __init__(self, player_id, board_size=7):
+    def __init__(self, player_id, board_size=9):
         super().__init__(player_id)
         self.board_size = board_size
 
@@ -92,6 +92,41 @@ class RLAgent(BaseAgent):
         total_loss.backward()
 
         # clip gradients so they don't explode
+        torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
+        self.optimiser.step()
+
+    def learn_td(self, state, action, reward, next_state, done, episode=0, max_episodes=10000):
+        state_tens = self.preprocess(state, player_id=1)
+        mask = self.mask(state)
+
+        probs, value = self.model(state_tens, mask)
+        action_ind = action[0] * self.board_size + action[1]
+        log_prob = torch.log(probs[0, action_ind] + 1e-8)   # log (pi(s|a))
+
+        if done:
+            target_value = torch.tensor([[float(reward)]])
+        else:
+            # Next state is opponent's turn 
+            next_tens = self.preprocess(next_state, player_id=-1)
+            next_mask = self.mask(next_state)
+            with torch.no_grad():
+                _, next_value = self.model(next_tens, next_mask)
+            target_value = reward - self.gamma * next_value.detach()
+
+        advantage = target_value - value
+
+        actor_loss = -log_prob * advantage.detach()
+        critic_loss = advantage ** 2
+
+        entropy_coeff = max(0.01 * (1 - episode / max_episodes), 0.001)    # exploration probability - decays
+        entropy = -torch.sum(probs * torch.log(probs + 1e-8))
+
+        loss = actor_loss + critic_loss - entropy_coeff * entropy
+
+        self.optimiser.zero_grad()
+        loss.backward()
+
+        # prevent gradients exploding
         torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
         self.optimiser.step()
 
