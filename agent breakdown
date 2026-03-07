@@ -1,0 +1,102 @@
+# Structure
+agents/
+├── base_agent.py          # BaseAgent and HumanAgent classes
+├── random_agent.py        # Random move agent (used as baseline)
+├── vin_agent.py           # RLAgent — Actor-Critic RL agent
+├── actor_critic.py        # CNN Actor-Critic neural network
+├── intermediate_rewards.py # Shaped reward logic (threat detection)
+├── human_train.py         # Interactive human-vs-agent training session
+└── train.py               # Main training script + uses match.py for evaluation
+
+game/
+├── logic.py               # Core Gomoku game logic
+├── gomoku_env.py          # RL environment wrapper (headless training)
+├── board.py               # Pygame visual board
+└── match.py               # Headless agent evaluation utilities
+
+main.py                    # Entry point (play against agent or headless eval)
+
+
+# Functionality - agent used actor-critic architecture trained with TD learning: 
+
+Actor: CNN policy network that outputs a probability distribution over all board positions
+Critic: Value head that estimates the expected return from a given board state
+Reward shaping: Intermediate rewards from intermediate_rewards.py guide learning between terminal win/loss signals
+Self-play: Agent trains against a frozen copy of itself, refreshed periodically
+Entropy regularisation: Encourages exploration, decays over training
+
+# Neural Network
+
+Input: (1, board_size, board_size) — board from agents perspective (stones flipped to +1/-1)
+  → Conv2d(1→32) + GroupNorm + ReLU
+  → Conv2d(32→64) + GroupNorm + ReLU
+  → Conv2d(64→64) + GroupNorm + ReLU
+  → Flatten
+
+Policy head → Linear → mask illegal moves → Softmax → action probabilities
+Value head  → Linear(128) → Linear(1) → scalar value estimate
+
+# Saved Models
+
+Three model files are saved automatically during training.
+
+File:                            Saved When:
+gomoku_best_winrate_model.pth    Agent achieves a new highest winrate vs random
+gomoku_best_reward_model.pth     Rolling average shaped reward improves (while winrate stays high)
+gomoku_plateaued_model.pth       Shaped reward stabilises (std < 2.0 over last 5 evals) at high winrate
+
+
+To choose which model to load at the start of training, set LOAD_MODEL at the top of train.py:
+
+LOAD_MODEL = "gomoku_best_winrate_model.pth"  # or reward/plateaued
+
+# Training
+
+Standard Self-Play Training: 
+
+run command: 
+python -m agents.train
+
+This runs up to max_episodes = 10000 episodes. Every 200 episodes it evaluates against a fresh RandomAgent over 200 games and prints winrate. 
+Every 500 episodes the frozen self-play opponent is refreshed to a copy of the current agent.
+
+Training progress output:
+
+Episode 200 | total shaped reward this episode: 14.23
+Results after 200 games:
+  Agent 1 wins: 198 (99.0%)
+  Agent 2 wins: 2 (1.0%)
+Episode: 200, winrate vs random: 0.990
+  -> New best winrate model saved (0.990)
+Episode 500: Updated frozen opponent.
+
+A winrate plot is shown at the end of training.
+
+Human-in-the-Loop Training:
+
+run command:
+
+
+python -m agents.train --humantrain    # Load the winrate model (default)
+
+OR
+
+python -m agents.train --humantrain --model gomoku_plateaued_model.pth   # Load a specific model
+python -m agents.train --humantrain --model gomoku_best_reward_model.pth
+
+
+# Playing Against the Agent
+
+run command:
+
+python main.py
+
+This opens the Pygame window. You play as Black (Player 1), the agent plays as Red (Player -1).
+The agent loads from gomoku_best_model.pth by default (see main.py to change which model)
+Click Start to begin, Reset to restart, Quit to exit
+
+
+To play against a specific saved model, change the path in main.py:
+
+if os.path.exists("gomoku_best_winrate_model.pth"):   # change to any of the three saved models
+    rl_agent.load("gomoku_best_winrate_model.pth")   
