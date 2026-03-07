@@ -4,13 +4,16 @@ import pygame
 import argparse
 from agents.dqn_jeson import DQNAgent
 from agents.dqn_simple_jeson import DQNAgent as SimpleDQNAgent
+from agents.dqn_rohan import DQNAgentRohan
 from game.logic import GomokuLogic
 from game.board import Board
 from game.match import eval_agents
 
-
+from agents.strategic_agent import StrategicAgent
 from agents.base_agent import HumanAgent
 from agents.random_agent import RandomAgent
+from agents.minimax_agent import MinimaxAgent
+from agents.threatening_agent import ThreateningAgentLegacy
 
 
 def main(headless=False, num_games=100):
@@ -27,12 +30,21 @@ def main(headless=False, num_games=100):
     board = Board(game)
 
     player_1 = HumanAgent(player_id=1)
-    #player_2 = RandomAgent(player_id=-1)
-
-    player_2 = SimpleDQNAgent(player_id=-1, board_size=9)
-    player_2.load_model("models_phase4_v2/phase4_best_strategic.pt")
-    #player_2.load_model("models_phase2b/stage6_challenge_final.pt")
-    player_2.epsilon = 0.0  # Pure exploitation
+    
+    # === CHOOSE YOUR OPPONENT ===
+    # Option 1: Rohan DQN (shaped rewards training)
+    player_2 = DQNAgentRohan(player_id=-1, board_size=9)
+    player_2.load_model("models_rohan/final.pt")
+    player_2.epsilon = 0.0
+    
+    # Option 2: Minimax agent - strong deterministic opponent
+    # player_2 = MinimaxAgent(player_id=-1, board_size=9, skill_level= 1)
+    
+    # Option 3: Strategic agent
+    # player_2 = StrategicAgent(player_id=-1, skill_level=1.0, board_size=9)
+    
+    # Option 4: Random agent
+    # player_2 = RandomAgent(player_id=-1)
 
     players = {1: player_1, -1: player_2}
 
@@ -84,3 +96,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     results = main(headless=args.headless, num_games=args.num_games)
+
+    results = main(headless=args.headless, num_games=args.num_games)
+
