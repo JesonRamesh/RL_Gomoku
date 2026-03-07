@@ -542,7 +542,190 @@ Phase 4 v2 (3-way)     98.5%            64.0%               43.0%   ← current 
 Change                  -0.5%           +21.5%              +13.5%
 ```
 
-### Training Complete
+## Stage 8 — Minimax Agent Development & Training Against It
 
-The project is complete. Phase 4 v2 is the final model. No further training runs
-are planned.
+**Goal:** Create an "unbeatable" agent by training against a strong algorithmic opponent
+
+### Minimax Agent Implementation
+
+**File:** `agents/minimax_agent.py`
+
+Created a Minimax agent with:
+- Alpha-beta pruning for efficient search
+- Iterative deepening with time limit
+- Transposition table for caching positions
+- Pattern-based evaluation (5-in-a-row, open fours, threes, etc.)
+- `skill_level` parameter (0.0–1.0) to control strength via random move injection
+- Optimized move ordering and candidate move generation
+
+The agent at `skill_level=1.0` plays perfect tactical Gomoku (always blocks wins, takes wins, creates optimal threats).
+
+### Training Attempts (Multiple Iterations)
+
+**Scripts:** `train_vs_minimax.py`, `train_full_pipeline.py`, `train_adaptive.py`
+
+#### Attempt 1: Direct Training vs Minimax (FAILED)
+- Agent got 0% win rate against even weak Minimax
+- Problem: Gap between Random and Minimax too large
+- Agent never received positive learning signals
+
+#### Attempt 2: Curriculum with skill_level (FAILED)
+- Gradually increased Minimax skill from 0.3 → 0.85
+- Agent still couldn't win consistently
+- Win rate vs Random dropped (catastrophic forgetting)
+
+#### Attempt 3: Strategic Agent as Bridge (PARTIAL SUCCESS)
+- Added StrategicAgent training stage between Random and Minimax
+- Better but still insufficient strategic learning
+
+#### Attempt 4: Adaptive Curriculum (MODERATE SUCCESS)
+- Only promoted difficulty when win rate > 55%
+- Automatically demoted if struggling
+- Reached Level 10 (MM-0.7) in curriculum
+- Results: 95% Random, 60% Strat-0.5, 50% MM-0.3
+
+**Key Insight:** DQN with sparse rewards struggles to learn from opponents it cannot beat. The agent needs to win frequently to receive positive learning signals.
+
+---
+
+## Stage 9 — Rohan Agent: Shaped Rewards + Enhanced Architecture (CURRENT BEST)
+
+**Files created:**
+- `agents/dqn_rohan.py` — Enhanced DQN agent
+- `game/gomoku_env_shaped.py` — Environment with shaped rewards
+- `train_rohan.py` — Training script
+
+### Architecture Improvements (dqn_rohan.py)
+
+```
+DQNetworkRohan:
+    - Dueling DQN architecture (separate value and advantage streams)
+    - 4 convolutional layers (vs 3 in original)
+    - Prioritized Experience Replay
+    - Built-in threat detection in predict()
+    
+Additional Features:
+    - Opening heuristics (center control, connected pieces)
+    - Tactical priority system:
+      1. Win immediately
+      2. Block opponent's win
+      3. Create open four
+      4. Block opponent's open four
+      5. Create fork (2+ open threes)
+      6. Block opponent's fork
+      7. Fall back to learned Q-values
+```
+
+### Shaped Rewards (gomoku_env_shaped.py)
+
+Unlike Stage 2's failed shaped rewards, these are calibrated for defense:
+
+| Action | Reward |
+|--------|--------|
+| Block winning threat | +0.4 |
+| Block 4-in-a-row threat | +0.2 |
+| Block open three | +0.08 |
+| Create winning threat | +0.15 |
+| Create fork (2+ threats) | +0.15 bonus |
+| Ignore winning threat | -0.3 |
+| Positional (center) | +0.005 |
+
+**Why this works when Stage 2 failed:**
+1. Defense-weighted rewards (blocking > attacking)
+2. Penalty for ignoring critical threats
+3. Combined with strong opponents that actually create threats
+4. Agent trained from scratch with this reward structure
+
+### Training Results
+
+**Script:** `train_rohan.py --episodes 100000`
+
+| Metric | Result |
+|--------|--------|
+| Curriculum Max Level | 10 (MM-0.7) |
+| vs Random | ~95% |
+| vs Strategic-0.3 | ~50% |
+| vs Strategic-0.5 | ~60% |
+| vs Strategic-0.7 | ~20% |
+| vs MM-0.3 | ~50% |
+| vs MM-0.5 | ~40% |
+| vs MM-0.7 | ~15% |
+
+### Behavioral Assessment
+
+**Improvements over previous agents:**
+- ✅ Actually blocks threats (shaped rewards working)
+- ✅ Takes center on opening moves
+- ✅ Creates connected pieces
+- ✅ Detects and blocks/creates forks
+
+**Remaining limitations:**
+- Still prefers aggressive play over defensive setups
+- Opening strategy is rule-based, not learned
+- Against perfect Minimax (skill 1.0), cannot win
+
+---
+
+## Current Model Status (Updated)
+
+| Model file | Trained on | vs Random | vs Strategic-0.5 | vs MM-0.5 | Notes |
+|---|---|---|---|---|---|
+| `phase4_best_strategic.pt` | 6k 3-way | 98.5% | 43% | N/A | Previous best (Jeson) |
+| `models_rohan/final.pt` | 100k shaped | ~95% | ~60% | ~40% | **Current best** ✅ |
+| `models_adaptive/best.pt` | 80k adaptive | ~95% | ~55% | ~25% | Adaptive curriculum |
+
+---
+
+## Files Created in This Session
+
+**New agents:**
+```
+agents/dqn_rohan.py          Enhanced DQN with Dueling architecture + tactical heuristics
+agents/minimax_agent.py      Minimax with alpha-beta pruning, skill_level parameter
+```
+
+**New environments:**
+```
+game/gomoku_env_shaped.py    Environment with calibrated shaped rewards
+```
+
+**New training scripts:**
+```
+train_vs_minimax.py          Initial Minimax training (deprecated)
+train_full_pipeline.py       3-stage pipeline: Random → Strategic → Minimax
+train_adaptive.py            Adaptive curriculum with automatic promotion/demotion
+train_rohan.py               Final training script with shaped rewards
+```
+
+**Testing:**
+```
+test_minimax.py              Evaluate Minimax agent at different skill levels
+```
+
+---
+
+## Summary of New Lessons Learned
+
+| Lesson | Evidence |
+|---|---|
+| The gap between Random and Minimax is too large for direct curriculum | Multiple failed attempts with 0% win rate vs Minimax |
+| Adaptive curriculum (promote only when winning) works better than fixed schedule | Reached Level 10 vs stuck at Level 1-2 |
+| Sparse rewards fail when agent rarely wins | Agent couldn't learn from losses against strong Minimax |
+| Shaped rewards CAN work if defense-weighted and calibrated | Rohan agent actually blocks threats unlike previous attempts |
+| Built-in tactical heuristics complement learned Q-values | Opening moves + threat detection improve overall play |
+| DQN has fundamental limitations for perfect play | Even best model loses to Minimax skill 1.0 |
+
+---
+
+## Final Assessment
+
+The Rohan agent (`models_rohan/final.pt`) represents the best achievable performance with the DQN architecture:
+
+- **Strengths:** Blocks most threats, competitive against medium-skill opponents, good opening play
+- **Limitations:** Cannot beat perfect Minimax, still somewhat reactive rather than strategic
+
+**To achieve truly "unbeatable" play would require:**
+1. MCTS + Neural Network (AlphaZero-style) for lookahead
+2. Or pure Minimax with sufficient depth (already implemented)
+
+The Minimax agent at `skill_level=1.0` IS unbeatable by any DQN-based approach we've tried.
