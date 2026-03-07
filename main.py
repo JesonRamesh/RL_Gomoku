@@ -15,7 +15,7 @@ from agents.vin_agent import RLAgent
 
 def main(headless=False, num_games=100):
     if headless:
-        agent1 = HumanAgent(player_id=1)  # Replace with whatever agents
+        agent1 = HumanAgent(player_id=1)  
         agent2 = RLAgent(player_id=-1)
 
         # Run evaluation and get results dictionary
@@ -27,9 +27,9 @@ def main(headless=False, num_games=100):
     # load trained model
     rl_agent = RLAgent(player_id=-1, board_size=9)
  
-    if os.path.exists("gomoku_best_model.pth"):
+    if os.path.exists("gomoku_best_reward_model.pth"):
         print("Loading trained model...")
-        rl_agent.load("gomoku_best_model.pth")
+        rl_agent.load("gomoku_best_reward_model.pth")
     else:
         print("No saved model found, using untrained agent.")
 

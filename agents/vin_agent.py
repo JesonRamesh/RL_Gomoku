@@ -12,9 +12,9 @@ class RLAgent(BaseAgent):
         self.board_size = board_size
 
         self.model = ActorCritic(board_size)
-        self.optimiser = optim.Adam(self.model.parameters(), lr = 0.001)  # 0.01
+        self.optimiser = optim.Adam(self.model.parameters(), lr = 0.0002)  # 0.01
         
-        self.gamma = 0.99    
+        self.gamma = 0.90    
     
     def preprocess(self, state, player_id=None):
         # convert board to tensor
@@ -112,13 +112,14 @@ class RLAgent(BaseAgent):
             with torch.no_grad():
                 _, next_value = self.model(next_tens, next_mask)
             target_value = reward - self.gamma * next_value.detach()
+            target_value = torch.clamp(target_value, -50.0, 50.0)
 
         advantage = target_value - value
 
         actor_loss = -log_prob * advantage.detach()
         critic_loss = advantage ** 2
 
-        entropy_coeff = max(0.01 * (1 - episode / max_episodes), 0.001)    # exploration probability - decays
+        entropy_coeff = max(0.1 * (1 - episode / max_episodes), 0.005)    # exploration probability - decays
         entropy = -torch.sum(probs * torch.log(probs + 1e-8))
 
         loss = actor_loss + critic_loss - entropy_coeff * entropy

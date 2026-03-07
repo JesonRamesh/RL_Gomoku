@@ -12,7 +12,11 @@ class ActorCritic(nn.Module):
         # CNN
         # Input: (batch, 1, board_size, board_size)
         self.conv1 = nn.Conv2d(1, 32, kernel_size=3, padding=1)
+        self.gn1 = nn.GroupNorm(8, 32)   # 8 groups, 32 channels
         self.conv2 = nn.Conv2d(32, 64, kernel_size=3, padding=1)
+        self.gn2 = nn.GroupNorm(8, 64)
+        self.conv3 = nn.Conv2d(64, 64, kernel_size=3, padding=1)
+        self.gn3 = nn.GroupNorm(8, 64)
 
         self.flatten = nn.Flatten()
 
@@ -27,9 +31,9 @@ class ActorCritic(nn.Module):
 
         # x shape: (batch, 1, board_size, board_size)
 
-        x = F.relu(self.conv1(x))
-        x = F.relu(self.conv2(x))
-
+        x = F.relu(self.gn1(self.conv1(x)))
+        x = F.relu(self.gn2(self.conv2(x)))
+        x = F.relu(self.gn3(self.conv3(x)))
         flat = self.flatten(x)
 
 
