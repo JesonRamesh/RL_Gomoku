@@ -23,7 +23,34 @@ import random
 import numpy as np
 import torch
 from agents.base_agent import BaseAgent
-from agents.dqn_rohan import preprocess_board   # Reuse the board encoding DQN was trained with
+
+
+def preprocess_board(board, current_player):
+    """
+    Encode the board into a 3-channel numpy array for DQN input.
+
+    This is the same encoding used in both dqn_simple_jeson.py and dqn_rohan.py,
+    reproduced here so MCTSAgent has no dependency on a specific DQN module and
+    works with ANY trained DQNAgent or DQNAgentRohan instance.
+
+    Channels:
+        0 — current player's pieces  (1 where current_player has a stone)
+        1 — opponent's pieces         (1 where -current_player has a stone)
+        2 — player identity plane     (constant plane filled with current_player value: +1 or -1)
+
+    Args:
+        board          : numpy array (board_size × board_size) with values in {-1, 0, 1}
+        current_player : 1 or -1 — the player whose perspective we encode from
+
+    Returns:
+        numpy array of shape (3, board_size, board_size), dtype float32
+    """
+    board_size = board.shape[0]
+    state = np.zeros((3, board_size, board_size), dtype=np.float32)
+    state[0] = (board == current_player).astype(np.float32)
+    state[1] = (board == -current_player).astype(np.float32)
+    state[2] = np.ones((board_size, board_size), dtype=np.float32) * current_player
+    return state
 
 
 # =============================================================================
@@ -384,8 +411,16 @@ class MCTSAgent(BaseAgent):
         else:
             # No untried moves AND no children: this is a terminal node
             # that was reached by selection (we already marked it terminal).
-            # Treat as draw since we don't know the exact outcome.
-            value = 0.0
+            # Re-check win condition so winning nodes return 1.0 on every visit,
+            # not just the first — prevents Q-value dilution toward 0.
+            if node.move is not None and node.parent is not None:
+                moving_player = node.parent.player_to_move
+                if _check_winner(node.board, node.move, moving_player, self.board_size):
+                    value = 1.0
+                else:
+                    value = 0.0  # Draw (board full)
+            else:
+                value = 0.0
 
         # ── PHASE 4: BACKPROPAGATION ──────────────────────────────────────────
         # Walk back UP the path from the newly expanded node to the root,
@@ -461,8 +496,9 @@ class MCTSAgent(BaseAgent):
             preprocess_board(board, player)   # Returns (3, 9, 9) numpy array
         ).unsqueeze(0).to(self.dqn_agent.device)   # Add batch dim → (1, 3, 9, 9)
 
-        # Forward pass — torch.no_grad() prevents storing gradients,
-        # saving memory and time since we never call .backward() here
+        # Forward pass — eval() ensures BatchNorm works with batch_size=1;
+        # no_grad() prevents storing gradients (inference only)
+        self.dqn_agent.q_network.eval()
         with torch.no_grad():
             q_values = self.dqn_agent.q_network(state_tensor).squeeze()
             # squeeze() removes the batch dimension: (1, 81) → (81,)

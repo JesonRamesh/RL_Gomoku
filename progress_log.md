@@ -970,10 +970,10 @@ train_rohan.py               Stage 11 — Full Rohan pipeline
 
 ---
 
-## Stage 12 — DQN-Guided MCTS (AlphaZero-style Inference) — IN PROGRESS
+## Stage 12 — DQN-Guided MCTS (AlphaZero-style Inference) — COMPLETE
 
 **File:** `agents/mcts_agent.py`
-**Depends on:** `models_rohan/final.pt` (Stage 11 trained weights — no new training required)
+**Tested with:** `models_phase4_v2/phase4_best_strategic.pt` (Jeson's Stage 7 model, 200 simulations)
 
 ### Motivation
 
@@ -1085,18 +1085,30 @@ After all simulations, we pick the **most-visited** child, not the highest-Q chi
 - High visit count means MCTS kept choosing to return to that line across many simulations — a far more robust signal of sustained quality
 - This is standard AlphaZero practice
 
-### Expected Performance
+### Actual Performance (20 games each, 200 simulations, M4 MPS)
 
-Based on DQN+MCTS results in comparable board game research (Connect4, Gomoku):
-
-| Opponent | DQN alone (Stage 11) | DQN + MCTS (expected) |
+| Opponent | DQN alone | DQN + MCTS (200 sims) |
 |---|---|---|
-| vs RandomAgent | ~95% | ~97–99% |
-| vs StrategicAgent-0.5 | ~60% | ~70–80% |
-| vs MinimaxAgent-0.5 | ~40% | ~55–65% |
-| vs MinimaxAgent-1.0 | ~0% | ~10–20% |
+| vs RandomAgent | 100% | 90% |
+| vs StrategicAgent-0.5 | 55% | 10% |
+| vs MinimaxAgent-0.5 | 15% | 10% |
+| Time per 20-game set | ~4s | ~125s |
 
-The gains are largest precisely where DQN struggled most — multi-step tactical situations. Against Minimax (which plans ahead), adding lookahead to our side narrows the advantage it previously held completely.
+**MCTS performed worse than DQN alone across all opponents.**
+
+### Why MCTS Hurt Rather Than Helped
+
+This is a well-documented failure mode in the literature when DQN Q-values are used naively as MCTS leaf evaluators:
+
+1. **Q-values are relative, not absolute.** DQN Q-values rank moves within a single position — they are not calibrated win-probability estimates across different positions. `max_Q = 0.4` at depth 3 does not mean the same thing as `max_Q = 0.4` at depth 5.
+
+2. **Sparse training, poor value estimates.** The DQN was trained with sparse rewards (+1 win, −1 loss). Most intermediate states were never clearly associated with outcomes, so Q-values at non-terminal leaf nodes carry high noise.
+
+3. **Shallow trees mislead selection.** With 200 simulations on 81 cells, the average tree is only ~2–3 ply deep. Bad DQN estimates at depth 2 poison UCB selection at the root, diverting visits away from the best moves.
+
+4. **AlphaZero comparison.** AlphaZero works because the value network and policy network are trained **jointly with MCTS** — the network learns to produce value estimates that are explicitly calibrated to MCTS use. Our DQN was trained independently, so the estimates are not MCTS-compatible.
+
+**Lesson:** Wrapping a separately-trained DQN in MCTS does not automatically improve performance. Either (a) train a dedicated value head jointly with MCTS data, or (b) use the DQN as a policy prior (biasing which moves to try first) rather than as a leaf evaluator. Option (b) is PUCT — the algorithm AlphaZero uses at inference. For this project's deadline, the DQN alone (Stage 11) remains the best deployable agent.
 
 ### RL Validity
 
@@ -1126,7 +1138,8 @@ MCTS alone is a search algorithm, not RL. However, our implementation is explici
 | Prioritized Experience Replay focuses training on surprising, high-error experiences | Stage 11 training loss more stable; better convergence vs difficult opponents |
 | Dueling DQN separates state value from action advantage, improving learning efficiency | Stage 11 achieved comparable win rates in fewer effective gradient updates |
 | DQN has a fundamental lookahead limitation against reactive tree-search opponents | Even best DQN wins ~0% vs MinimaxAgent at skill_level=1.0 |
-| DQN-guided MCTS gives lookahead without retraining by wrapping inference in tree search | Stage 12: expected +10–20pp vs Minimax opponents with no additional training |
+| DQN Q-values are relative rankings within a position, not calibrated win-probability estimates across positions | Stage 12: MCTS hurt performance (−45pp vs Strat-0.5) because shallow trees amplify miscalibrated leaf signals |
+| AlphaZero MCTS works because value network and policy are trained jointly with MCTS data | Using a separately-trained DQN as MCTS evaluator breaks this calibration; Q-values are incompatible with MCTS |
 
 ---
 
@@ -1139,7 +1152,7 @@ MCTS alone is a search algorithm, not RL. However, our implementation is explici
 Stage 1 Baseline           95–97%          ~10%           N/A
 Stage 7 (Jeson best)       98.5%           43%            N/A
 Stage 11 (Rohan best)      ~95%            ~60%           ~40%
-Stage 12 (DQN+MCTS, exp.)  ~98%            ~75%           ~60%
+Stage 12 (DQN+MCTS, actual) 90%             10%            10%  ← worse (see Stage 12 analysis)
 ```
 
 ### The Boundary We Crossed
