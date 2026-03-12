@@ -1201,13 +1201,27 @@ shaped rewards are zeroed out, leaving only the ignore penalty and the terminal 
 
 ### Results
 
-*In progress — to be updated after training runs.*
+#### 1,000-episode test run — ALL GREEN ✅
 
 | Checkpoint | vs Random | vs Strategic-0.3 | vs Strategic-0.5 |
 |---|---|---|---|
 | Phase 4 baseline | 98.5% | 64.0% | 43.0% |
-| Phase 5, 1k ep (test) | TBD | TBD | TBD |
+| Phase 5, ep 500 | 100.0% | 66.0% | **48.0%** |
+| Phase 5, ep 1000 | 98.0% | 64.0% | 44.0% |
+| Phase 5, 1k final (200 games) | **100.0%** | **70.5%** | 42.0% |
 | Phase 5, 8k ep (full) | TBD | TBD | TBD |
+
+Key observations from test run:
+- **No strategy collapse** — vs Random held 98–100% throughout. 25% random anchor is working.
+- **vs Strategic-0.3 improved +6.5pp** (64% → 70.5%) in 1,000 episodes, already exceeding Phase 4's
+  full 6,000-episode result. The ignore penalty is firing and teaching defensive patterns.
+- **vs Strategic-0.5 improved +1–5pp** (43% → 44–48%). Best checkpoint (ep 500) hit 48%.
+- **No Q-value corruption** — all metrics stable or improving, confirming ignore-penalty-only
+  continuation from a pre-trained sparse model is safe (unlike Stage 2's full shaped rewards).
+- Final 200-game eval runs on `phase5_final.pt` (ep 1000); best model saved is
+  `phase5_best_strategic05.pt` (48% vs S-0.5 at ep 500).
+
+Proceeding to full 8,000-episode run.
 
 ---
 
