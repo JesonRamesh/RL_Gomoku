@@ -14,12 +14,18 @@ from game.logic import GomokuLogic
 class GomokuEnvShaped:
     """
     RL environment with carefully calibrated shaped rewards.
+
+    positive_rewards (bool): If False, all offensive/positional shaped rewards are
+        disabled — only the ignore penalty and terminal signals fire. Use this when
+        continuing from a sparse-reward pre-trained model to avoid Q-value inflation
+        while still teaching defensive awareness via the immediate ignore penalty.
     """
 
-    def __init__(self, game_logic):
+    def __init__(self, game_logic, positive_rewards=True):
         self.logic = game_logic
         self.board_size = game_logic.board_size
         self.prev_board = None
+        self.positive_rewards = positive_rewards
 
     def reset(self):
         self.logic.reset_game()
@@ -58,19 +64,22 @@ class GomokuEnvShaped:
                 reward = -1.0
         else:
             # SHAPED REWARDS (non-terminal states)
-            
-            # 1. BLOCKING REWARDS (most important for learning defense)
-            block_reward = self._calc_blocking_reward(row, col, board_after, opponent, opp_threats_before)
-            
-            # 2. THREAT CREATION REWARDS  
-            threat_reward = self._calc_threat_reward(row, col, board_after, moving_player)
-            
-            # 3. PENALTY for ignoring critical threats
+
+            # 3. PENALTY for ignoring critical threats (always active)
             ignore_penalty = self._calc_ignore_penalty(row, col, board_before, opponent, opp_threats_before)
-            
-            # 4. POSITIONAL BONUS (center control, adjacency)
-            positional_reward = self._calc_positional_reward(row, col, board_after, moving_player)
-            
+
+            if self.positive_rewards:
+                # 1. BLOCKING REWARDS (most important for learning defense)
+                block_reward = self._calc_blocking_reward(row, col, board_after, opponent, opp_threats_before)
+                # 2. THREAT CREATION REWARDS
+                threat_reward = self._calc_threat_reward(row, col, board_after, moving_player)
+                # 4. POSITIONAL BONUS (center control, adjacency)
+                positional_reward = self._calc_positional_reward(row, col, board_after, moving_player)
+            else:
+                block_reward = 0.0
+                threat_reward = 0.0
+                positional_reward = 0.0
+
             reward = block_reward + threat_reward + ignore_penalty + positional_reward
             reward = np.clip(reward, -0.5, 0.5)
 

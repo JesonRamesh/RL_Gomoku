@@ -1143,6 +1143,74 @@ MCTS alone is a search algorithm, not RL. However, our implementation is explici
 
 ---
 
+---
+
+## Stage 13 — Phase 5: Defensive Awakening via Ignore Penalty (IN PROGRESS)
+
+**Branch:** `phase5-defensive-training`
+**Script:** `train_phase5_defensive.py`
+**Model target:** `models_phase5/phase5_best_strategic05.pt`
+
+### Motivation
+
+Human play testing of `phase4_best_strategic.pt` revealed two clear behavioural failures:
+
+1. **Zero defensive awareness** — the agent never blocks 3-in-a-row or 4-in-a-row threats
+2. **Memorised opening** — first 5 moves are always identical, brittle against any human disruption
+
+Root cause: sparse rewards (`+1`/`-1` at game end only) cannot credit-assign across 20+ moves.
+When the agent ignores a threat on move 8 and loses on move 22, the gradient blames move 22,
+not move 8. The agent never learned that ignoring that specific threat caused the loss.
+
+### Why Ignore Penalty Is Safe (Unlike Stage 2)
+
+Stage 2 failed because **positive** shaped rewards inflated offensive Q-values — the agent chased
+rewards instead of winning. The ignore penalty is **purely negative**: it only lowers Q-values for
+the specific bad action (ignoring a critical threat). Q-values for all other actions are unchanged.
+Result: `Q(blocking)` stays the same; `Q(ignoring)` goes down → blocking becomes relatively better
+without any risk of Q-value inflation.
+
+Key implementation: `GomokuEnvShaped` now accepts `positive_rewards=False` — all offensive/positional
+shaped rewards are zeroed out, leaving only the ignore penalty and the terminal `±1.0` signal.
+
+### Setup
+
+- **Load from:** `models_phase4_v2/phase4_best_strategic.pt`
+- **Architecture:** SimpleDQNAgent (unchanged — same as Stages 1–7)
+- **Environment:** `GomokuEnvShaped(positive_rewards=False)`
+  - Ignore winning threat (opponent has 4-in-a-row with open end): `−0.3` immediately
+  - Ignore 4-threat (single open end, one threat only): `−0.1` immediately
+  - All other non-terminal rewards: `0` (identical to sparse)
+  - Terminal win/loss: `±1.0` (unchanged, still dominant)
+- **Opponents:** 55% self-play / 25% RandomAgent / 20% StrategicAgent-0.5
+  - Strategic ratio increased from 15% → 20% and skill upgraded 0.3 → 0.5
+  - At skill 0.5, opponent blocks threats 50% of the time → ignore penalty fires more often
+- **Buffer warmup:** 500 episodes (non-negotiable — Stage 4 lesson)
+- **Episodes:** 8,000 (initial 1,000 test run first)
+- **Epsilon:** `0.05 → 0.02`
+- **Sync frequency:** every 500 episodes
+- **Save metric:** best vs StrategicAgent-0.5 (primary) + best vs StrategicAgent-0.3 (secondary)
+
+### Stop Conditions
+
+| Condition | Action |
+|---|---|
+| Win rate vs Random < 85% at any eval | STOP — investigate buffer or ignore penalty magnitude |
+| Win rate vs Strategic-0.3 < 55% after 2,000 episodes | STOP — regression, ignore penalty too aggressive |
+| Win rate vs Strategic-0.5 ≥ 55% at final eval | Phase A SUCCESS → proceed to Phase B |
+
+### Results
+
+*In progress — to be updated after training runs.*
+
+| Checkpoint | vs Random | vs Strategic-0.3 | vs Strategic-0.5 |
+|---|---|---|---|
+| Phase 4 baseline | 98.5% | 64.0% | 43.0% |
+| Phase 5, 1k ep (test) | TBD | TBD | TBD |
+| Phase 5, 8k ep (full) | TBD | TBD | TBD |
+
+---
+
 ## Final Assessment
 
 ### Where We Started vs Where We Are
