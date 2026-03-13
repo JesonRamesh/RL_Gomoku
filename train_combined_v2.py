@@ -16,11 +16,13 @@ Why Rohan's training never had this problem:
 
 This script = train_rohan.py with 3 targeted improvements from our failures:
 
-    1. Ignore penalty gated by epsilon (new lesson from Stage 15 attempts):
-       - At ε > 0.4: ignore penalty OFF — fires on random exploration moves,
-         not deliberate decisions → negative Q-value spiral
-       - At ε < 0.4: ignore penalty ON — agent is 60%+ deliberate, penalty
-         correctly teaches "you had a choice and made the wrong one"
+    1. Ignore penalty enabled from episode 1 — same as Rohan's proven approach.
+       The "ignore penalty causes negative spiral at high ε" failure only occurred
+       with FIXED phases that forced strategic opponents from the start. With
+       adaptive curriculum at Level 0 (Random), the random opponent creates threats
+       rarely (~2-3 per game), so the penalty fires rarely and keeps losses clearly
+       negative. Disabling it (previous attempt) made losses near-zero, destroying
+       the Q-network's ability to distinguish wins from losses → 28% vs Random.
 
     2. Minimum 25% random anchor (Jeson Stage 6 lesson):
        - Rohan's anchor dropped to 15% at high levels
@@ -183,7 +185,7 @@ def train_combined_v2(
     print(f"Architecture:  DQNAgentRohan (Dueling DQN + PER + AdamW)")
     print(f"Device:        {agent.device}")
     print(f"Epsilon:       1.0 → 0.02 over {total_episodes:,} episodes")
-    print(f"Rewards:       GomokuEnvShaped (ignore penalty enabled at ε < 0.4)")
+    print(f"Rewards:       GomokuEnvShaped (full shaped rewards + ignore penalty from ep 1)")
     print(f"Curriculum:    {len(difficulty_levels)} levels, promote ≥ {promote_threshold:.0%}, demote < {demote_threshold:.0%}")
     print(f"Random anchor: max(0.25, 0.40 - level×0.02)  [minimum 25%]")
     print(f"Win detection: actual game outcome (not episode_reward)")
@@ -215,14 +217,16 @@ def train_combined_v2(
         opponent.player_id = -1 if agent_first else 1
 
         # ── Environment ───────────────────────────────────────────────────────
-        # IMPROVEMENT 1: Ignore penalty gated by epsilon.
-        # At ε > 0.4 (high random exploration): ignore penalty fires on random moves,
-        #   not deliberate decisions → suppress Q-values incorrectly → negative spiral.
-        # At ε < 0.4 (mostly deliberate): penalty fires correctly on bad choices.
-        use_ignore_penalty = (agent.epsilon < 0.4)
+        # Full shaped rewards including ignore penalty from episode 1.
+        # The ignore penalty does NOT cause a negative spiral at Level 0 (Random):
+        #   a random opponent creates 4-in-a-row threats only ~2-3 times per game,
+        #   so the penalty fires rarely and usefully — it keeps losses clearly negative
+        #   (-0.7 net reward) so the Q-network can distinguish wins from losses.
+        # Disabling the ignore penalty (previous attempt) made losses near-zero reward,
+        #   destroying the Q-network's ability to learn that losing is bad → 28% vs Random.
         logic = GomokuLogic(board_size=board_size)
         env   = GomokuEnvShaped(logic, positive_rewards=True,
-                                ignore_penalty_enabled=use_ignore_penalty)
+                                ignore_penalty_enabled=True)
 
         # ── Play episode ───────────────────────────────────────────────────────
         state = env.reset()
@@ -302,12 +306,11 @@ def train_combined_v2(
             avg_l  = np.mean(all_losses[-1000:]) if all_losses else 0.0
             curr_wr = np.mean(recent_wins) if recent_wins else 0.0
             elapsed = (time.time() - start_time) / 60
-            ign_str = "ON" if use_ignore_penalty else "off"
             print(f"Ep {episode+1:>6}/{total_episodes} | "
                   f"Lv {current_level}: {level_name:10} | "
                   f"CurrWR: {curr_wr:.1%} | "
                   f"Rew: {avg_r:>5.2f} | Loss: {avg_l:.4f} | "
-                  f"Eps: {agent.epsilon:.3f} | Ign: {ign_str} | {elapsed:.1f}m")
+                  f"Eps: {agent.epsilon:.3f} | {elapsed:.1f}m")
 
         # ── Evaluation every 2000 episodes ────────────────────────────────────
         if (episode + 1) % 2000 == 0:
