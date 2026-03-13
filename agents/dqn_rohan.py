@@ -183,17 +183,166 @@ class DQNAgentRohan(BaseAgent):
         self.target_network.eval()
 
     def predict(self, board_state):
-        """Selects action using epsilon-greedy policy (pure RL)."""
+        """Selects action using epsilon-greedy with tactical awareness."""
         valid_moves = list(zip(*np.where(board_state == 0)))
 
         if len(valid_moves) == 0:
             return None
+        
+        # Opening strategy for first few moves
+        move_count = np.sum(board_state != 0)
+        if move_count <= 4:
+            opening_move = self._get_opening_move(board_state, valid_moves)
+            if opening_move:
+                return opening_move
+        
+        # Always check for immediate wins or blocks
+        urgent_move = self._find_urgent_move(board_state, valid_moves)
+        if urgent_move and random.random() > 0.1:
+            return urgent_move
         
         if random.random() < self.epsilon:
             return random.choice(valid_moves)
         else:
             return self._get_best_action(board_state, valid_moves)
     
+    def _get_opening_move(self, board, valid_moves):
+        """Strategic opening moves."""
+        center = self.board_size // 2
+        move_count = np.sum(board != 0)
+        
+        if move_count == 0:
+            if (center, center) in valid_moves:
+                return (center, center)
+        
+        if move_count == 1:
+            if board[center, center] != 0:
+                for dr, dc in [(1, 1), (-1, -1), (1, -1), (-1, 1)]:
+                    pos = (center + dr, center + dc)
+                    if pos in valid_moves:
+                        return pos
+            if (center, center) in valid_moves:
+                return (center, center)
+        
+        if move_count <= 4:
+            my_pieces = list(zip(*np.where(board == self.player_id)))
+            if my_pieces:
+                best_moves = []
+                for pr, pc in my_pieces:
+                    for dr, dc in [(1, 1), (-1, -1), (1, -1), (-1, 1), (0, 1), (1, 0), (0, -1), (-1, 0)]:
+                        pos = (pr + dr, pc + dc)
+                        if pos in valid_moves:
+                            dist = abs(pos[0] - center) + abs(pos[1] - center)
+                            best_moves.append((pos, dist))
+                if best_moves:
+                    best_moves.sort(key=lambda x: x[1])
+                    return best_moves[0][0]
+        return None
+
+    def _find_urgent_move(self, board, valid_moves):
+        """Find winning move, block opponent's win, or create/block strong threats."""
+        for move in valid_moves:
+            if self._is_winning_move(board, move, self.player_id):
+                return move
+        
+        for move in valid_moves:
+            if self._is_winning_move(board, move, -self.player_id):
+                return move
+        
+        for move in valid_moves:
+            if self._creates_open_four(board, move, self.player_id):
+                return move
+        
+        for move in valid_moves:
+            if self._creates_open_four(board, move, -self.player_id):
+                return move
+        
+        fork_move = self._find_fork_move(board, valid_moves, self.player_id)
+        if fork_move:
+            return fork_move
+        
+        fork_move = self._find_fork_move(board, valid_moves, -self.player_id)
+        if fork_move:
+            return fork_move
+        
+        return None
+    
+    def _is_winning_move(self, board, move, player):
+        """Check if a move wins the game."""
+        row, col = move
+        directions = [(0, 1), (1, 0), (1, 1), (1, -1)]
+        for dr, dc in directions:
+            count = 1
+            for i in range(1, 5):
+                r, c = row + dr * i, col + dc * i
+                if 0 <= r < self.board_size and 0 <= c < self.board_size and board[r, c] == player:
+                    count += 1
+                else:
+                    break
+            for i in range(1, 5):
+                r, c = row - dr * i, col - dc * i
+                if 0 <= r < self.board_size and 0 <= c < self.board_size and board[r, c] == player:
+                    count += 1
+                else:
+                    break
+            if count >= 5:
+                return True
+        return False
+    
+    def _creates_open_four(self, board, move, player):
+        """Check if move creates an open four."""
+        row, col = move
+        directions = [(0, 1), (1, 0), (1, 1), (1, -1)]
+        for dr, dc in directions:
+            count = 1
+            open_ends = 0
+            r, c = row + dr, col + dc
+            while 0 <= r < self.board_size and 0 <= c < self.board_size and board[r, c] == player:
+                count += 1
+                r += dr
+                c += dc
+            if 0 <= r < self.board_size and 0 <= c < self.board_size and board[r, c] == 0:
+                open_ends += 1
+            r, c = row - dr, col - dc
+            while 0 <= r < self.board_size and 0 <= c < self.board_size and board[r, c] == player:
+                count += 1
+                r -= dr
+                c -= dc
+            if 0 <= r < self.board_size and 0 <= c < self.board_size and board[r, c] == 0:
+                open_ends += 1
+            if count >= 4 and open_ends >= 1:
+                return True
+        return False
+    
+    def _find_fork_move(self, board, valid_moves, player):
+        """Find move that creates multiple open threes."""
+        for move in valid_moves:
+            open_threes = 0
+            row, col = move
+            directions = [(0, 1), (1, 0), (1, 1), (1, -1)]
+            for dr, dc in directions:
+                count = 1
+                open_ends = 0
+                r, c = row + dr, col + dc
+                while 0 <= r < self.board_size and 0 <= c < self.board_size and board[r, c] == player:
+                    count += 1
+                    r += dr
+                    c += dc
+                if 0 <= r < self.board_size and 0 <= c < self.board_size and board[r, c] == 0:
+                    open_ends += 1
+                r, c = row - dr, col - dc
+                while 0 <= r < self.board_size and 0 <= c < self.board_size and board[r, c] == player:
+                    count += 1
+                    r -= dr
+                    c -= dc
+                if 0 <= r < self.board_size and 0 <= c < self.board_size and board[r, c] == 0:
+                    open_ends += 1
+                if count == 3 and open_ends == 2:
+                    open_threes += 1
+            if open_threes >= 2:
+                return move
+        return None
+
     def _get_best_action(self, board_state, valid_moves):
         """Gets the best action based on Q-values."""
         state_tensor = torch.FloatTensor(
@@ -283,3 +432,4 @@ class DQNAgentRohan(BaseAgent):
         if 'beta' in checkpoint:
             self.beta = checkpoint['beta']
         print("Model loaded successfully.")
+
