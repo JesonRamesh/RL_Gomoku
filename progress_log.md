@@ -1221,7 +1221,66 @@ Key observations from test run:
 - Final 200-game eval runs on `phase5_final.pt` (ep 1000); best model saved is
   `phase5_best_strategic05.pt` (48% vs S-0.5 at ep 500).
 
-Proceeding to full 8,000-episode run.
+#### Full 8,000-episode run — COLLAPSED ❌ (overtraining)
+
+| Checkpoint | vs Random | vs Strategic-0.3 | vs Strategic-0.5 |
+|---|---|---|---|
+| Phase 5 best vs Random (early) | 99.5% | **78.0%** | **51.0%** |
+| Phase 5 best vs S-0.3 (early) | 99.5% | 72.0% | 49.0% |
+| Phase 5 best vs S-0.5 (early) | 100.0% | 75.0% | 52.5% |
+| Phase 5 final (ep 8000) | 84.5% | 20.5% | 6.0% |
+
+**The ignore penalty approach worked — but only in the first ~500–1000 episodes.**
+All saved "best" checkpoints substantially outperform Phase 4 v2 (+7–12pp).
+The final model collapsed for the same reason as Stage 4 and Stage 6: overtraining.
+
+**Root causes of collapse:**
+1. **Ran too long (8,000 vs ~1,000 safe window):** Peak performance at ep ~500; 7,500 more
+   episodes eroded it. The frozen opponent is synced 16 times and gradually absorbs defensive
+   training — by ep 4,000 both self-play sides are playing defensively, weakening offensive Q-values.
+2. **Two variables changed simultaneously:** Strategic ratio 15%→20% AND skill 0.3→0.5.
+   Combined hard-opponent load overwhelmed the 25% random anchor.
+3. **Evaluation too infrequent (every 500 eps):** Peak was between evals; the best checkpoint
+   was saved by luck (vs-Random metric happened to peak early). Evaluating every 250 episodes
+   would catch peaks before collapse.
+
+**Current best model: `models_phase5/phase5_best_random.pt`**
+- 99.5% vs Random / 78.0% vs S-0.3 / 51.0% vs S-0.5
+- This is +12pp vs S-0.3 and +7.5pp vs S-0.5 above Phase 4 v2 baseline
+- Achieved in the early training window before collapse
+
+Proceeding to Phase 5b with corrections: 30% random anchor, one variable changed at a time,
+3,000 episodes max, eval every 250 episodes.
+
+---
+
+## Stage 14 — Phase 5b: Defensive Continuation (Corrected Approach) (IN PROGRESS)
+
+**Script:** `train_phase5b.py`
+**Load from:** `models_phase5/phase5_best_random.pt` (99.5% / 78.0% / 51.0%)
+
+### Changes from Phase 5 (one variable at a time)
+
+| Parameter | Phase 5 (failed) | Phase 5b (corrected) | Reason |
+|---|---|---|---|
+| Random anchor | 25% | **30%** | Restored to Phase 3's proven minimum threshold |
+| Strategic % | 20% | **15%** | Reduced back to safe level |
+| Strategic skill | 0.5 | 0.5 | Kept — this is the ONE change we're making |
+| Episodes | 8,000 | **3,000** | Stop before the ~1,500-ep collapse window |
+| Eval frequency | every 500 | **every 250** | Catch the peak before it passes |
+| Self-play % | 55% | **55%** | Unchanged |
+
+Net change: ONE variable changed (Strategic skill 0.3→0.5). Everything else matches
+or exceeds Phase 3/4 safety thresholds.
+
+### Results
+
+*In progress.*
+
+| Checkpoint | vs Random | vs Strategic-0.3 | vs Strategic-0.5 |
+|---|---|---|---|
+| Phase 5b start (= Phase 5 best) | 99.5% | 78.0% | 51.0% |
+| Phase 5b best (TBD) | TBD | TBD | TBD |
 
 ---
 
