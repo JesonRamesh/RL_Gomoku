@@ -90,8 +90,10 @@ def run_eval(agent, board_size, num_games, label):
     print(f"  vs Strategic-0.3: {s3:.1f}%")
     print(f"  vs Strategic-0.5: {s5:.1f}%")
     print(f"  vs Strategic-0.7: {s7:.1f}%")
-    if r < 85.0:
+    if r < 85.0 and "Phase A" not in label:
         print(f"  *** WARNING: vs Random < 85% — investigate immediately ***")
+    elif r < 60.0 and "Phase A" in label:
+        print(f"  *** WARNING: vs Random < 60% in Phase A — trend is declining, check rewards ***")
     print(f"{'='*55}\n")
     return r, s3, s5, s7
 
@@ -100,10 +102,25 @@ def run_eval(agent, board_size, num_games, label):
 # Episode runner (shaped env throughout)
 # -------------------------------------------------------
 
-def play_episode(agent, opponent, board_size):
-    """Play one game in the shaped environment. Returns (reward, experiences)."""
+def play_episode(agent, opponent, board_size, use_shaped=True):
+    """
+    Play one game. Returns (reward, experiences).
+
+    use_shaped=False → sparse rewards (GomokuEnv): used in Phase A where epsilon
+        is high (0.87+) and most moves are random exploration. Shaped rewards
+        during random play cause a negative spiral — the ignore penalty fires on
+        random moves that aren't deliberate decisions, converging all Q-values to
+        large negative values and degrading performance below random.
+
+    use_shaped=True  → full shaped rewards (GomokuEnvShaped): used from Phase B
+        onward when epsilon < 0.52 and the agent is making meaningful choices.
+        At that point the ignore penalty fires correctly on actual bad decisions.
+    """
     logic = GomokuLogic(board_size=board_size)
-    env = GomokuEnvShaped(logic, positive_rewards=True)
+    if use_shaped:
+        env = GomokuEnvShaped(logic, positive_rewards=True)
+    else:
+        env = GomokuEnv(logic, use_sparse_rewards=True)
     state = env.reset()
     ep_reward = 0.0
     experiences = []
@@ -253,6 +270,8 @@ def train_combined(
                 print(f"\n{'*'*55}")
                 print(f"  ENTERING PHASE B at episode {global_ep}")
                 print(f"  Opponents: 40% Random / 35% S-0.5 / 25% S-0.3")
+                print(f"  Rewards: switching to GomokuEnvShaped (full shaped rewards)")
+                print(f"  Epsilon now ~{agent.epsilon:.2f} — agent making ~{(1-agent.epsilon)*100:.0f}% deliberate choices")
                 print(f"  No self-play until Phase C")
                 print(f"{'*'*55}\n")
                 run_eval(agent, board_size, 100, f"Phase A→B boundary (ep {global_ep})")
@@ -278,7 +297,10 @@ def train_combined(
             phase_c_ep += 1
 
         # ── Play episode ──────────────────────────────────────────────────────
-        ep_reward, experiences = play_episode(agent, opponent, board_size)
+        # Phase A: sparse rewards (epsilon too high for shaped rewards to be meaningful)
+        # Phase B+: full shaped rewards (agent is making deliberate choices at ε<0.52)
+        use_shaped = (current_phase != "A")
+        ep_reward, experiences = play_episode(agent, opponent, board_size, use_shaped=use_shaped)
 
         for s, a, r, ns, d in experiences:
             agent.store_experience(s, a, r, ns, d)
