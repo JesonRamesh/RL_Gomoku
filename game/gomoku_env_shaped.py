@@ -19,13 +19,21 @@ class GomokuEnvShaped:
         disabled — only the ignore penalty and terminal signals fire. Use this when
         continuing from a sparse-reward pre-trained model to avoid Q-value inflation
         while still teaching defensive awareness via the immediate ignore penalty.
+
+    ignore_penalty_enabled (bool): If False, the ignore penalty is disabled even when
+        positive_rewards=True. Use this during high-epsilon Phase A training where most
+        moves are random exploration — the ignore penalty cannot distinguish a random
+        move from a deliberate bad decision, so it fires incorrectly and suppresses all
+        Q-values. Enable from Phase B onward when epsilon < ~0.5 and most moves are
+        deliberate choices.
     """
 
-    def __init__(self, game_logic, positive_rewards=True):
+    def __init__(self, game_logic, positive_rewards=True, ignore_penalty_enabled=True):
         self.logic = game_logic
         self.board_size = game_logic.board_size
         self.prev_board = None
         self.positive_rewards = positive_rewards
+        self.ignore_penalty_enabled = ignore_penalty_enabled
 
     def reset(self):
         self.logic.reset_game()
@@ -65,8 +73,11 @@ class GomokuEnvShaped:
         else:
             # SHAPED REWARDS (non-terminal states)
 
-            # 3. PENALTY for ignoring critical threats (always active)
-            ignore_penalty = self._calc_ignore_penalty(row, col, board_before, opponent, opp_threats_before)
+            # 3. PENALTY for ignoring critical threats (disabled during high-epsilon Phase A)
+            if self.ignore_penalty_enabled:
+                ignore_penalty = self._calc_ignore_penalty(row, col, board_before, opponent, opp_threats_before)
+            else:
+                ignore_penalty = 0.0
 
             if self.positive_rewards:
                 # 1. BLOCKING REWARDS (most important for learning defense)

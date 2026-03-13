@@ -102,23 +102,27 @@ def run_eval(agent, board_size, num_games, label):
 # Episode runner (shaped env throughout)
 # -------------------------------------------------------
 
-def play_episode(agent, opponent, board_size, use_shaped=True):
+def play_episode(agent, opponent, board_size, use_shaped=True, ignore_penalty=True):
     """
     Play one game. Returns (reward, experiences).
 
-    use_shaped=False → sparse rewards (GomokuEnv): used in Phase A where epsilon
-        is high (0.87+) and most moves are random exploration. Shaped rewards
-        during random play cause a negative spiral — the ignore penalty fires on
-        random moves that aren't deliberate decisions, converging all Q-values to
-        large negative values and degrading performance below random.
+    use_shaped=False → sparse rewards (GomokuEnv): not used in the current design
+        but kept for compatibility.
 
-    use_shaped=True  → full shaped rewards (GomokuEnvShaped): used from Phase B
-        onward when epsilon < 0.52 and the agent is making meaningful choices.
-        At that point the ignore penalty fires correctly on actual bad decisions.
+    use_shaped=True, ignore_penalty=False → positive shaped rewards only (Phase A):
+        blocking rewards, threat creation rewards, and positional bonuses all fire,
+        giving a dense learning signal even at high epsilon. The ignore penalty is
+        disabled because at ε>0.5 the agent plays randomly more than half the time —
+        the penalty cannot distinguish exploration from a deliberate bad decision and
+        fires incorrectly on random moves, suppressing all Q-values.
+
+    use_shaped=True, ignore_penalty=True → full shaped rewards (Phase B+):
+        ignore penalty enabled once ε<0.52 and the agent is making mostly deliberate
+        choices. At that point penalising ignored threats is correct.
     """
     logic = GomokuLogic(board_size=board_size)
     if use_shaped:
-        env = GomokuEnvShaped(logic, positive_rewards=True)
+        env = GomokuEnvShaped(logic, positive_rewards=True, ignore_penalty_enabled=ignore_penalty)
     else:
         env = GomokuEnv(logic, use_sparse_rewards=True)
     state = env.reset()
@@ -229,7 +233,7 @@ def train_combined(
     print("COMBINED LONG RUN: Dueling DQN + PER + Shaped Rewards + 3-Phase Curriculum")
     print("=" * 65)
     print(f"Architecture:    DQNAgentRohan (Dueling DQN + Prioritized Replay)")
-    print(f"Environment:     GomokuEnvShaped(positive_rewards=True) throughout")
+    print(f"Environment:     Phase A: GomokuEnvShaped(positive_rewards=True, ignore_penalty=False)")
     print(f"Device:          {agent.device}")
     print(f"Epsilon:         1.0 → 0.02 over {total_episodes:,} episodes")
     print(f"Epsilon decay:   {agent.epsilon_decay:.7f} per episode")
@@ -270,7 +274,7 @@ def train_combined(
                 print(f"\n{'*'*55}")
                 print(f"  ENTERING PHASE B at episode {global_ep}")
                 print(f"  Opponents: 40% Random / 35% S-0.5 / 25% S-0.3")
-                print(f"  Rewards: switching to GomokuEnvShaped (full shaped rewards)")
+                print(f"  Rewards: enabling ignore penalty (was positive-only in Phase A)")
                 print(f"  Epsilon now ~{agent.epsilon:.2f} — agent making ~{(1-agent.epsilon)*100:.0f}% deliberate choices")
                 print(f"  No self-play until Phase C")
                 print(f"{'*'*55}\n")
@@ -297,10 +301,17 @@ def train_combined(
             phase_c_ep += 1
 
         # ── Play episode ──────────────────────────────────────────────────────
-        # Phase A: sparse rewards (epsilon too high for shaped rewards to be meaningful)
-        # Phase B+: full shaped rewards (agent is making deliberate choices at ε<0.52)
-        use_shaped = (current_phase != "A")
-        ep_reward, experiences = play_episode(agent, opponent, board_size, use_shaped=use_shaped)
+        # Phase A: positive shaped rewards ONLY — no ignore penalty.
+        #   Positive rewards (blocking, threat creation) give dense signal even at ε>0.5.
+        #   Ignore penalty disabled: at ε=0.77 most moves are random; the penalty fires
+        #   on random exploration moves and suppresses Q-values incorrectly.
+        # Phase B+: full shaped rewards including ignore penalty (ε<0.52, mostly deliberate).
+        use_ignore_penalty = (current_phase != "A")
+        ep_reward, experiences = play_episode(
+            agent, opponent, board_size,
+            use_shaped=True,
+            ignore_penalty=use_ignore_penalty,
+        )
 
         for s, a, r, ns, d in experiences:
             agent.store_experience(s, a, r, ns, d)
