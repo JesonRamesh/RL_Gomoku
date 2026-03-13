@@ -1140,6 +1140,9 @@ MCTS alone is a search algorithm, not RL. However, our implementation is explici
 | DQN has a fundamental lookahead limitation against reactive tree-search opponents | Even best DQN wins ~0% vs MinimaxAgent at skill_level=1.0 |
 | DQN Q-values are relative rankings within a position, not calibrated win-probability estimates across positions | Stage 12: MCTS hurt performance (−45pp vs Strat-0.5) because shallow trees amplify miscalibrated leaf signals |
 | AlphaZero MCTS works because value network and policy are trained jointly with MCTS data | Using a separately-trained DQN as MCTS evaluator breaks this calibration; Q-values are incompatible with MCTS |
+| Shaped rewards during high-epsilon exploration cause catastrophic Q-value collapse | Stage 15 first attempt: ε=0.87 in Phase A + shaped rewards → all Q-values converge to large negative → 64% → 42% vs Random (declining trend) |
+| The ignore penalty fires on random moves the same as deliberate ones — it cannot distinguish exploration from strategy | Fix: use sparse rewards during Phase A (ε > 0.5), switch to shaped rewards at Phase B when ε ≈ 0.52 and the agent is making deliberate choices |
+| Shaped rewards work from scratch only when the agent is already making semi-deliberate decisions | Phase 5 ep500: ignore penalty → +13pp vs S-0.3 in 500 eps; safe because pre-trained model already had strategy |
 
 ---
 
@@ -1336,9 +1339,45 @@ This stage combines every proven component from both Jeson's and Rohan's work.
 | vs S-0.5 | ~35% | ~55–60% | ~60–68% |
 | vs S-0.7 | ~10% | ~35–40% | ~45–55% |
 
+### Critical Fix — Phase A Must Use Sparse Rewards ⚠️
+
+**First attempt failed immediately (ep 2,000: 64% vs Random → ep 4,000: 42% vs Random).**
+
+Root cause: `GomokuEnvShaped` was used throughout all phases including Phase A. At ε=0.87
+(Phase A, ep 2,000), the agent plays randomly 87% of the time. The shaped environment cannot
+distinguish "deliberate strategic choice" from "random exploration." Every random move that
+happens to ignore a threat fires the ignore penalty (−0.3). A 30-move game with 26 random moves
+produces ~8–10 ignore penalties = −2.4 to −3.0 in intermediate rewards per episode.
+
+With every experience producing negative rewards, the Dueling DQN's Value head V(s) converges
+toward a large negative number. The Advantage head A(s,a) shrinks toward zero. All Q-values
+become uniformly negative. The greedy policy (ε=0 during eval) produces near-random moves —
+worse than the Q-values at random initialisation. This explains the 64% → 42% declining trend.
+
+**Fix applied (one-line change):** Phase A uses `GomokuEnv(use_sparse_rewards=True)`.
+Shaped rewards activate automatically at the Phase B boundary when ε ≈ 0.52.
+
+**Why shaped rewards are safe at Phase B start:**
+At ε=0.52 the agent makes ~48% deliberate choices. The StrategicAgent-0.5 creates real threats
+that fire the shaped rewards correctly. The buffer transitions from sparse to shaped over ~500 Phase B
+episodes as old experiences are replaced — acceptable noise over 20,000 Phase B episodes. This is NOT
+Stage 2's failure mode (Stage 2: ε=0.02, deeply converged, random opponent that never creates threats).
+
+| Condition | Stage 2 (failed) | Phase A→B transition (safe) |
+|---|---|---|
+| ε at reward switch | 0.02 (deeply converged) | 0.52 (still exploring) |
+| Opponent creates threats? | No (random) | Yes (S-0.3, S-0.5) |
+| Blocking reward fires? | Rarely | Frequently |
+| Ignore penalty correct? | Never (random opponent) | Yes (deliberate choices) |
+
+**Evidence that shaped rewards work (from our own data):**
+Phase 5 ep500 test run — 500 episodes of ignore penalty only (subset of shaped rewards) on the
+Phase 4 baseline model → vs S-0.3 jumped from 66% to 79% (+13pp) with vs Random held at 99%.
+This is a controlled experiment: same architecture, same opponents, only the ignore penalty added.
+
 ### Results
 
-*In progress — to be updated after training runs.*
+*In progress — restarted after Phase A reward fix.*
 
 | Checkpoint | vs Random | vs S-0.3 | vs S-0.5 | vs S-0.7 |
 |---|---|---|---|---|

@@ -50,6 +50,10 @@ if __name__ == "__main__":
         ("Phase 5 best vs S-0.5",         "models_phase5/phase5_best_strategic05.pt"),
         ("Phase 5 ep500  (test run)",     "models_phase5_test/phase5_best_strategic05.pt"),
         ("Phase 5 final  (collapsed)",    "models_phase5/phase5_final.pt"),
+        ("Phase 5b best vs Random",       "models_phase5b/phase5b_best_random.pt"),
+        ("Phase 5b best vs S-0.3",        "models_phase5b/phase5b_best_s03.pt"),
+        ("Phase 5b best vs S-0.5",        "models_phase5b/phase5b_best_s05.pt"),
+        ("Phase 5b final  (collapsed)",   "models_phase5b/phase5b_final.pt"),
     ]
 
     print(f"\n{'Model':<40} {'vs Random':>10} {'vs S-0.3':>10} {'vs S-0.5':>10}")
