@@ -1284,6 +1284,71 @@ or exceeds Phase 3/4 safety thresholds.
 
 ---
 
+## Stage 15 — Combined Long Run: Best of Both Worlds (IN PROGRESS)
+
+**Script:** `train_combined_longrun.py`
+**Branch:** `phase5-defensive-training`
+**Model target:** `models_combined/`
+
+### Motivation
+
+After 14 stages of training, the root causes of every failure are fully understood:
+- Shaped rewards fail on pre-trained models (Q-value mismatch) — but work from scratch
+- Self-play before defensive skills → escalation trap (every Phase 5 run)
+- Short continuation runs → peak at ep ~500, then collapse
+- Empty buffer on reload → immediate corruption
+- Multiple variables changed at once → unpredictable failures
+
+This stage combines every proven component from both Jeson's and Rohan's work.
+
+### Architecture: DQNAgentRohan (Rohan's proven components)
+
+| Component | Reason |
+|---|---|
+| Dueling DQN (Value + Advantage heads) | Faster convergence in positions where most moves are equivalent (most of Gomoku) |
+| Prioritized Experience Replay | Rare but important blocking moments are replayed more; uniform sampling buries them |
+| AdamW + weight decay | Prevents weight explosion over 60k episodes |
+| Learning rate 5e-5 | More stable than 1e-4 for long runs |
+| Shaped rewards from EPISODE 1 | Q-values calibrated to shaped world from the start — Stage 2 mismatch is impossible |
+
+### Curriculum: Three phases (Jeson's discovered insights)
+
+**Phase A (ep 1–10,000):** 80% Random / 20% StrategicAgent-0.1, ε=1.0→0.52
+- Establish basic offense and first defensive instincts
+- No self-play (too early, agent knows nothing)
+
+**Phase B (ep 10,001–30,000):** 40% Random / 35% StrategicAgent-0.5 / 25% StrategicAgent-0.3, ε=0.52→0.14
+- Deep defensive mastery — 20,000 episodes facing strategic opponents
+- **NO self-play** (key Phase 5 lesson: self-play before defensive awareness = escalation trap)
+- Random anchor at 40% (above proven 30% minimum — extra safety during high-change phase)
+
+**Phase C (ep 30,001–60,000):** 30% Random / 25% StrategicAgent-0.5 / 25% self-play / 20% StrategicAgent-0.7, ε=0.14→0.02
+- Self-play introduced AFTER 30k episodes of defensive training
+- Frozen copy synced every 2,000 episodes (4× slower than Phase 5's 500)
+- S-0.7 forces fork development (cannot win with simple line attacks)
+
+### Expected Performance
+
+| Opponent | After Phase A | After Phase B | After Phase C |
+|---|---|---|---|
+| vs Random | ~90% | ~92% | ~95%+ |
+| vs S-0.3 | ~50% | ~75–80% | ~82–88% |
+| vs S-0.5 | ~35% | ~55–60% | ~60–68% |
+| vs S-0.7 | ~10% | ~35–40% | ~45–55% |
+
+### Results
+
+*In progress — to be updated after training runs.*
+
+| Checkpoint | vs Random | vs S-0.3 | vs S-0.5 | vs S-0.7 |
+|---|---|---|---|---|
+| Phase 4 v2 baseline | 96.5% | 66.5% | 40.0% | ~20% |
+| Phase A complete (ep 10k) | TBD | TBD | TBD | TBD |
+| Phase B complete (ep 30k) | TBD | TBD | TBD | TBD |
+| Phase C complete (ep 60k) | TBD | TBD | TBD | TBD |
+
+---
+
 ## Final Assessment
 
 ### Where We Started vs Where We Are

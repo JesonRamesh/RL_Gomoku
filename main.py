@@ -32,9 +32,9 @@ def main(headless=False, num_games=100):
     player_1 = HumanAgent(player_id=1)
     
     # === CHOOSE YOUR OPPONENT ===
-    # Option 1: Jeson DQN best model (Phase 4 v2 - 98.5% vs Random, 64% vs Strategic-0.3)
+    # Option 1: Jeson DQN best model (Phase 5 - 99% vs Random, 79% vs Strategic-0.3, 50% vs S-0.5)
     player_2 = SimpleDQNAgent(player_id=-1, board_size=9)
-    player_2.load_model("models_phase4_v2/phase4_best_strategic.pt")
+    player_2.load_model("models_phase5_test/phase5_best_strategic05.pt")
     player_2.epsilon = 0.0
 
     # Option 2: Rohan DQN (shaped rewards training)
