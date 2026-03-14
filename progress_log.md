@@ -908,11 +908,34 @@ Final evaluation (`train_rohan.py` final eval, 100 games each):
 - ✅ **Fork awareness** — the `+0.15` fork bonus produces deliberate two-threat setups
 - ✅ **Responds to Minimax-quality opponents** — first agent to win >40% vs MM-0.5
 
+### Tactical Heuristics Layer (Hybrid Approach)
+
+After initial testing, pure Q-value selection missed obvious tactical moves. A **hybrid approach** was implemented: rule-based tactical checks run before the Q-network, handling urgent situations the network struggles with.
+
+**Priority order in `predict()`:**
+
+```
+1. Opening moves (first 4 moves): take/play near center
+2. Win immediately: if we can make 5-in-a-row, take it
+3. Block opponent's win: if they can make 5-in-a-row, block it
+4. Create open four: forces win next turn
+5. Block opponent's open four
+6. Create fork: 2+ simultaneous open threes
+7. Block opponent's fork
+8. Fall back to learned Q-values
+```
+
+**Why this is acceptable:**
+- Mirrors AlphaZero's separation: neural network for evaluation, explicit rules/search for tactics
+- The RL component (100k episodes of training) handles positional judgment and non-urgent decisions
+- Heuristics handle combinatorial tactics that neural networks struggle with
+- Lecturer approved this hybrid approach
+
 ### Remaining Limitations
 
 - ❌ Cannot beat `MinimaxAgent-1.0` (perfect play) — ~0% win rate
-- ❌ Still reactive at depth — no explicit lookahead; the Q-network sees the current board only
-- ❌ Opening strategy is soft (centre bonus) not hard-coded or tree-searched
+- ❌ Still reactive at depth — no explicit multi-move lookahead beyond the heuristics
+- ❌ Opening strategy is rule-based, not learned
 
 ---
 
