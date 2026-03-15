@@ -34,7 +34,7 @@ def main(headless=False, num_games=100):
     # === CHOOSE YOUR OPPONENT ===
     # Option 1: Rohan DQN (shaped rewards training)
     player_2 = DQNAgentRohan(player_id=-1, board_size=9)
-    player_2.load_model("models_rohan/final.pt")
+    player_2.load_model("final.pt")
     player_2.epsilon = 0.0
     
     # Option 2: Minimax agent - strong deterministic opponent
