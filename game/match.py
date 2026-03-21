@@ -1,7 +1,7 @@
 from game.logic import GomokuLogic
 
 
-def eval_agents(agent1, agent2, num_games=100, board_size=15):
+def eval_agents(agent1, agent2, num_games=100, board_size=9):
     """
     Run agent evaluations headlessly (no visualisation - PyGame) and return the results as a dictionary.
 

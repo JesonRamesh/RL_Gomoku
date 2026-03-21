@@ -7,7 +7,7 @@ BLACK = (0, 0, 0)
 BLUE = (0, 0, 255)
 TURQUOISE = (64, 224, 208)
 WHITE = (255, 255, 255)
-RED = (255, 0, 0)
+RED = (210, 50,  50)
 GREEN = (0, 255, 100)
 LIGHT_YELLOW = (255, 240, 210)  # 255, 250, 205
 
@@ -39,8 +39,8 @@ class Board:
         self.game_started = False
 
         self.start_button = Button((200, 15, 120, 40), "Start", colour=GREEN)
-        self.reset_button = Button((400, 15, 120, 40), "Reset", colour=TURQUOISE)
-        self.quit_button = Button((600, 15, 120, 40), "Quit", colour=RED)
+        self.reset_button = Button((350, 15, 120, 40), "Reset", colour=TURQUOISE)
+        self.quit_button = Button((500, 15, 120, 40), "Quit", colour=RED)
 
     def draw_stones(self):
         self.stone_radius = 18

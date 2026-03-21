@@ -17,12 +17,12 @@ class ThreatDetector:
     - Half-3: X X X | or | X X X (urgency 2)
     """
     
-    def __init__(self, board_size: int = 15, win_length: int = 5):
+    def __init__(self, board_size: int = 9, win_length: int = 5):
         """
         Initialize threat detector.
         
         Args:
-            board_size: Size of the Gomoku board (default 15x15)
+            board_size: Size of the Gomoku board (default 9x9)
             win_length: Length needed to win (default 5)
         """
         self.board_size = board_size
@@ -41,7 +41,7 @@ class ThreatDetector:
         Find all threats for a given player.
         
         Args:
-            board: 15x15 numpy array (0=empty, 1=player1, -1=player2)
+            board: 9x9 numpy array (0=empty, 1=player1, -1=player2)
             player_id: Which player's threats to find (1 or -1)
             
         Returns:
@@ -81,7 +81,7 @@ class ThreatDetector:
         This is the main function used for training data generation.
         
         Args:
-            board: 15x15 numpy array
+            board: 9x9 numpy array
             player_id: Opponent's ID (threats made by this player)
             
         Returns:
@@ -343,11 +343,11 @@ def run_tests():
     """
     print("🧪 Running ThreatDetector Tests...\n")
     
-    detector = ThreatDetector(board_size=15, win_length=5)
+    detector = ThreatDetector(board_size=9, win_length=5)
     
     # Test 1: Horizontal Open-4
     print("Test 1: Horizontal Open-4 Detection")
-    board = np.zeros((15, 15), dtype=int)
+    board = np.zeros((9, 9), dtype=int)
     board[7, 5:9] = 1  # Place _ 1 1 1 1 _ at row 7
     threats = detector.find_all_threats(board, player_id=1)
     blocking = detector.must_block_positions(board, player_id=1)
@@ -362,7 +362,7 @@ def run_tests():
     
     # Test 2: Vertical Half-4
     print("Test 2: Vertical Half-4 Detection")
-    board = np.zeros((15, 15), dtype=int)
+    board = np.zeros((9, 9), dtype=int)
     board[3:7, 7] = -1  # Place -1 -1 -1 -1 in column 7
     threats = detector.find_all_threats(board, player_id=-1)
     blocking = detector.must_block_positions(board, player_id=-1)
@@ -373,7 +373,7 @@ def run_tests():
     
     # Test 3: Diagonal Open-3
     print("Test 3: Diagonal Open-3 Detection")
-    board = np.zeros((15, 15), dtype=int)
+    board = np.zeros((9, 9), dtype=int)
     board[5, 5] = board[6, 6] = board[7, 7] = 1  # Diagonal ↘
     threats = detector.find_all_threats(board, player_id=1)
     
@@ -384,7 +384,7 @@ def run_tests():
     
     # Test 4: No Threats (Empty Board)
     print("Test 4: Empty Board (No Threats)")
-    board = np.zeros((15, 15), dtype=int)
+    board = np.zeros((9, 9), dtype=int)
     threats = detector.find_all_threats(board, player_id=1)
     blocking = detector.must_block_positions(board, player_id=1)
     
@@ -394,7 +394,7 @@ def run_tests():
     
     # Test 5: Multiple Simultaneous Threats
     print("Test 5: Multiple Simultaneous Threats")
-    board = np.zeros((15, 15), dtype=int)
+    board = np.zeros((9, 9), dtype=int)
     board[7, 5:9] = 1   # Horizontal open-4
     board[3:7, 7] = 1   # Vertical half-4
     threats = detector.find_all_threats(board, player_id=1)
@@ -407,7 +407,7 @@ def run_tests():
     
     # Test 6: Edge Case - Threat at Board Boundary
     print("Test 6: Threat Near Board Edge")
-    board = np.zeros((15, 15), dtype=int)
+    board = np.zeros((9, 9), dtype=int)
     board[0, 0:4] = -1  # Top-left corner threat
     threats = detector.find_all_threats(board, player_id=-1)
     
@@ -416,7 +416,7 @@ def run_tests():
     
     # Test 7: Visualization Test
     print("Test 7: Visualization")
-    board = np.zeros((15, 15), dtype=int)
+    board = np.zeros((9, 9), dtype=int)
     board[7, 5:9] = 1
     vis = detector.visualize_threats(board, player_id=1)
     
@@ -428,10 +428,10 @@ def run_tests():
     print("Test 8: Performance Test (1000 board scans)")
     import time
     
-    board = np.zeros((15, 15), dtype=int)
+    board = np.zeros((9, 9), dtype=int)
     # Add some random stones
     for _ in range(30):
-        r, c = np.random.randint(0, 15, 2)
+        r, c = np.random.randint(0, 9, 2)
         board[r, c] = np.random.choice([1, -1])
     
     start = time.time()

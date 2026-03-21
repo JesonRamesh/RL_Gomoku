@@ -2,8 +2,7 @@
 import sys
 import pygame
 import argparse
-from agents.dqn_jeson import DQNAgent
-from agents.dqn_simple_jeson import DQNAgent as SimpleDQNAgent
+
 from agents.dqn_rohan import DQNAgentRohan
 from game.logic import GomokuLogic
 from game.board import Board
@@ -97,5 +96,5 @@ if __name__ == "__main__":
 
     results = main(headless=args.headless, num_games=args.num_games)
 
-    results = main(headless=args.headless, num_games=args.num_games)
+    
 

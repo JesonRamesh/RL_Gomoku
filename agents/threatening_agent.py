@@ -25,7 +25,7 @@ class ThreateningAgent(BaseAgent):
         Threatening-0.5: Blocks 50% of threats, random 50%
     """
     
-    def __init__(self, player_id: int, block_probability: float = 0.0, board_size: int = 15):
+    def __init__(self, player_id: int, block_probability: float = 0.0, board_size: int = 9):
         """
         Initialize Threatening Agent.
         
@@ -37,7 +37,7 @@ class ThreateningAgent(BaseAgent):
                 - 0.3: Blocks 30% of threats
                 - 0.5: Blocks 50% of threats
                 - 1.0: Always blocks threats
-            board_size: Size of game board (default 15)
+            board_size: Size of game board (default 9)
         """
         super().__init__(player_id)
         self.block_probability = block_probability
