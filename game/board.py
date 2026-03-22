@@ -38,9 +38,9 @@ class Board:
         self.game_started = False
 
         self.stone_radius = 18
-        self.start_button = Button((200, 15, 120, 40), "Start", colour=GREEN)
-        self.reset_button = Button((350, 15, 120, 40), "Reset", colour=TURQUOISE)
-        self.quit_button = Button((500, 15, 120, 40), "Quit", colour=RED)
+        self.start_button = Button((120, 25, 120, 40), "Start", colour=GREEN)
+        self.reset_button = Button((260, 25, 120, 40), "Reset", colour=TURQUOISE)
+        self.quit_button = Button((400, 25, 120, 40), "Quit", colour=RED)
 
         self.overlays = Overlays(
             window_width  = self.Window_Width,
@@ -120,7 +120,7 @@ class Board:
             pygame.Rect(self.offset_x - 2, self.offset_y - 2, grid_w - 35, grid_h - 35),
         )
 
-        # draw veritcal lines
+        # draw vertical lines
         for col in range(self.cols):
             x = self.offset_x + col * self.cell_pitch
             pygame.draw.line(
@@ -215,6 +215,7 @@ class Board:
  
 
     def mouse_click(self, pos):
+        
         # Buttons
         if self.start_button.is_clicked(pos):
             self.game_started = True
@@ -231,6 +232,7 @@ class Board:
         if self.quit_button.is_clicked(pos):
             pygame.quit()
             sys.exit()
+        
         # Board
         if not self.game_started or self.game_logic.game_over:
             return
