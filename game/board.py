@@ -178,12 +178,41 @@ class Board:
 
         # Show turns
         if self.game_started and not self.game_logic.game_over:
-            if self.game_logic.current_player == 1:
-                label_text, col = " Player 1", BLACK
-            else:
-                label_text, col = " Player 2", STONE_RED
-            label = self.font.render(label_text, True, col)
-            self.screen.blit(label, (22, 28))
+            cy = self.Window_Height // 2
+            left_cx  = self.offset_x // 2
+            right_cx = self.offset_x + self.grid_size_px + (self.Window_Width - self.offset_x - self.grid_size_px) // 2
+ 
+            ellipse_w, ellipse_h = 90, 44
+ 
+            for player_id, cx, label_text, stone_col in (
+                (1,  left_cx,  "Player 1", BLACK),
+                (-1, right_cx, "Player 2", STONE_RED),
+            ):
+                active = self.game_logic.current_player == player_id
+                ex = cx - ellipse_w // 2
+                ey = cy - ellipse_h // 2
+ 
+                # solid ellipse for player labels
+                fill_col   = (*stone_col, 220) if active else (*stone_col, 60)
+                border_col = (*stone_col, 255) if active else (*stone_col, 120)
+ 
+                el_surf = pygame.Surface((ellipse_w, ellipse_h), pygame.SRCALPHA)
+                pygame.draw.ellipse(el_surf, fill_col,   (0, 0, ellipse_w, ellipse_h))
+                pygame.draw.ellipse(el_surf, border_col, (0, 0, ellipse_w, ellipse_h), 2)
+                self.screen.blit(el_surf, (ex, ey))
+ 
+                # Sheen blitted onto screen for 3D effect
+                if active:
+                    sheen_surf = pygame.Surface((ellipse_w, ellipse_h // 4), pygame.SRCALPHA)
+                    pygame.draw.ellipse(sheen_surf, (255, 255, 255, 55),
+                                        (0, 0, ellipse_w, ellipse_h // 4))
+                    self.screen.blit(sheen_surf, (ex, ey + 3))
+ 
+                # Label on top of everything 
+                if active:
+                    label = self.font.render(label_text, True, WHITE)
+                    self.screen.blit(label, label.get_rect(center=(cx, cy)))
+ 
 
     def mouse_click(self, pos):
         # Buttons
