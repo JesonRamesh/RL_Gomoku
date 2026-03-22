@@ -1,15 +1,14 @@
 import pygame
 import sys
-from .gomoku_env import Button
-
-# colours
-BLACK = (0, 0, 0)
-BLUE = (0, 0, 255)
-TURQUOISE = (64, 224, 208)
+from .gomoku_env import (Button, Overlays)
+ 
+BLACK = (0,   0,   0)  
 WHITE = (255, 255, 255)
-RED = (210, 50,  50)
-GREEN = (0, 255, 100)
-LIGHT_YELLOW = (255, 240, 210)  # 255, 250, 205
+RED = (200,  40,  40) 
+GREEN = (0,   200, 100) 
+TURQUOISE = (64,  224, 208)
+LIGHT_YELLOW = (255, 240, 210) 
+STONE_RED = (210,  50,  50) 
 
 
 class Board:
@@ -38,12 +37,54 @@ class Board:
 
         self.game_started = False
 
+        self.stone_radius = 18
         self.start_button = Button((200, 15, 120, 40), "Start", colour=GREEN)
         self.reset_button = Button((350, 15, 120, 40), "Reset", colour=TURQUOISE)
         self.quit_button = Button((500, 15, 120, 40), "Quit", colour=RED)
 
+        self.overlays = Overlays(
+            window_width  = self.Window_Width,
+            window_height = self.Window_Height,
+            cell_pitch    = self.cell_pitch,
+            stone_radius  = self.stone_radius,
+            offset_x      = self.offset_x,
+            offset_y      = self.offset_y,
+            rows          = self.rows,
+            cols          = self.cols,
+        )
+ 
+        # Track whether we've already signalled game-over to overlays
+        self._game_over_signalled = False
+
+
+    def find_winning_sequence(self):
+        """Return the 5 (row, col) positions that form the winner's line."""
+        if not self.game_logic.game_over or self.game_logic.winner == 0:
+            return []
+ 
+        board      = self.game_logic.board
+        winner     = self.game_logic.winner
+        directions = [(1, 0), (0, 1), (1, 1), (1, -1)]
+ 
+        for row in range(self.rows):
+            for col in range(self.cols):
+                if board[row, col] != winner:
+                    continue
+                for dr, dc in directions:
+                    seq = [(row, col)]
+                    for i in range(1, 5):
+                        r, c = row + dr * i, col + dc * i
+                        if (0 <= r < self.rows and 0 <= c < self.cols
+                                and board[r, c] == winner):
+                            seq.append((r, c))
+                        else:
+                            break
+                    if len(seq) >= 5:
+                        return seq[:5]
+        return []
+
     def draw_stones(self):
-        self.stone_radius = 18
+        
         # draw grid
         for row in range(self.rows):
             for col in range(self.cols):
@@ -53,10 +94,21 @@ class Board:
                     x = self.offset_x + col * self.cell_pitch
                     y = self.offset_y + row * self.cell_pitch
 
-                    color = BLACK if stone == 1 else RED
+                    color = BLACK if stone == 1 else STONE_RED
                     pygame.draw.circle(self.screen, color, (x, y), self.stone_radius)
 
+                    # graphic inner highlights
+                    hi_surf = pygame.Surface(
+                    (self.stone_radius * 2, self.stone_radius * 2), pygame.SRCALPHA)
+                    pygame.draw.circle(hi_surf, (255, 255, 255, 45),
+                                   (self.stone_radius - 4, self.stone_radius - 5),
+                                   self.stone_radius // 2)
+                    self.screen.blit(hi_surf, (x - self.stone_radius, y - self.stone_radius))
+
+        
     def draw(self):
+
+        self.overlays.tick()
         self.screen.fill(LIGHT_YELLOW)
 
         # white background for grid
@@ -90,6 +142,21 @@ class Board:
             )
 
         self.draw_stones()
+
+        # Overlays
+        if not self.game_started:
+            self.overlays.draw_ready(self.screen)
+ 
+        elif self.game_logic.game_over:
+            # Signal the overlay once when the game first ends
+            if not self._game_over_signalled:
+                winning_seq = self.find_winning_sequence()
+                self.overlays.on_game_over(winning_seq)
+                self._game_over_signalled = True
+ 
+            self.overlays.draw_winning_highlight(self.screen)
+            self.overlays.draw_winner_panel(self.screen, self.game_logic.winner)
+        
         self.draw_ui()
 
         pygame.display.flip()
@@ -110,32 +177,27 @@ class Board:
         self.quit_button.draw(self.screen, self.font)
 
         # Show turns
-        if not self.game_started:
-            status = "Ready To Play"
-        elif self.game_logic.game_over:
-            if self.game_logic.winner == 1:
-                status = "Black wins!"
-            elif self.game_logic.winner == -1:
-                status = "Red wins!"
-
+        if self.game_started and not self.game_logic.game_over:
+            if self.game_logic.current_player == 1:
+                label_text, col = " Player 1", BLACK
             else:
-                status = "Draw"
-
-        else:
-            status = "Player 1" if self.game_logic.current_player == 1 else "Player 2"
-
-        label = self.font.render(status, True, (0, 0, 0))
-        self.screen.blit(label, (40, 30))
+                label_text, col = " Player 2", STONE_RED
+            label = self.font.render(label_text, True, col)
+            self.screen.blit(label, (22, 28))
 
     def mouse_click(self, pos):
         # Buttons
         if self.start_button.is_clicked(pos):
             self.game_started = True
+            self._game_over_signalled = False
+            self.overlays.reset()
             return
 
         if self.reset_button.is_clicked(pos):
             self.game_logic.reset_game()
             self.game_started = False
+            self._game_over_signalled = False
+            self.overlays.reset()
             return
         if self.quit_button.is_clicked(pos):
             pygame.quit()
