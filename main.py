@@ -3,7 +3,7 @@ import sys
 import pygame
 import argparse
 
-from agents.dqn_rohan import DQNAgentRohan
+from agents.dqn_agent import DQNAgent
 from game.logic import GomokuLogic
 from game.board import Board
 from game.match import eval_agents
@@ -12,7 +12,6 @@ from agents.strategic_agent import StrategicAgent
 from agents.base_agent import HumanAgent
 from agents.random_agent import RandomAgent
 from agents.minimax_agent import MinimaxAgent
-from agents.threatening_agent import ThreateningAgentLegacy
 
 
 def main(headless=False, num_games=100):
@@ -31,8 +30,8 @@ def main(headless=False, num_games=100):
     player_1 = HumanAgent(player_id=1)
 
     # === CHOOSE YOUR OPPONENT ===
-    # Option 1: Rohan DQN (shaped rewards training)
-    player_2 = DQNAgentRohan(player_id=-1, board_size=9)
+    # Option 1: DQN (shaped rewards training)
+    player_2 = DQNAgent(player_id=-1, board_size=9)
     player_2.load_model("Model/final.pt")
     player_2.epsilon = 0.0
 

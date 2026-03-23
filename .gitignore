@@ -184,3 +184,6 @@ datasets/
 # OS specific
 Thumbs.db
 .DS_Store
+
+# Desktop link?
+*.lnk

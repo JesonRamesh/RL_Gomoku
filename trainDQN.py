@@ -1,5 +1,5 @@
 """
-Training script for DQN Rohan Agent with shaped rewards.
+Training script for DQN agent with shaped rewards.
 
 Key improvements:
 1. Shaped rewards that teach blocking and threat creation
@@ -81,11 +81,11 @@ def train_dqn(
     batch_size=64,
     train_frequency=4,
     board_size=9,
-    save_dir="models_rohan",
+    save_dir="models_dqn",
     load_from=None,
 ):
     """
-    Train DQN Rohan agent with shaped rewards and adaptive curriculum.
+    Train DQN agent with shaped rewards and adaptive curriculum.
     """
     os.makedirs(save_dir, exist_ok=True)
 
@@ -169,7 +169,7 @@ def train_dqn(
     step_count = 0
 
     print("=" * 70)
-    print("ROHAN DQN TRAINING - Shaped Rewards + Adaptive Curriculum")
+    print("DQN TRAINING - Shaped Rewards + Adaptive Curriculum")
     print("=" * 70)
     print(f"Total episodes: {total_episodes}")
     print(f"Using shaped rewards for blocking and threat creation")
@@ -460,7 +460,7 @@ if __name__ == "__main__":
         help="Path to existing model to continue from",
     )
     parser.add_argument(
-        "--save-dir", type=str, default="models_rohan", help="Directory to save models"
+        "--save-dir", type=str, default="models_dqn", help="Directory to save models"
     )
     args = parser.parse_args()
 
