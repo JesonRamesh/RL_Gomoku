@@ -4,6 +4,7 @@ import pygame
 import argparse
 
 from agents.dqn_agent import DQNAgent
+from agents.alphazero_agent import AlphaZeroAgent
 from game.logic import GomokuLogic
 from game.board import Board
 from game.match import eval_agents
@@ -14,7 +15,32 @@ from agents.random_agent import RandomAgent
 from agents.minimax_agent import MinimaxAgent
 
 
-def main(headless=False, num_games=100):
+def build_opponent(opponent_name, model_path, board_size):
+    """Build opponent agent from CLI options."""
+    if opponent_name == "dqn":
+        agent = DQNAgent(player_id=-1, board_size=board_size)
+        agent.load_model(model_path)
+        agent.epsilon = 0.0
+        return agent
+
+    if opponent_name == "alphazero":
+        agent = AlphaZeroAgent(player_id=-1, board_size=board_size, num_simulations=200)
+        agent.load_model(model_path)
+        return agent
+
+    if opponent_name == "minimax":
+        return MinimaxAgent(player_id=-1, board_size=board_size, skill_level=1)
+
+    if opponent_name == "strategic":
+        return StrategicAgent(player_id=-1, skill_level=1.0, board_size=board_size)
+
+    if opponent_name == "random":
+        return RandomAgent(player_id=-1)
+
+    raise ValueError(f"Unsupported opponent: {opponent_name}")
+
+
+def main(headless=False, num_games=100, opponent="dqn", model_path="Model/final.pt"):
     if headless:
         agent1 = RandomAgent(player_id=1)  # Replace with whatever agents
         agent2 = RandomAgent(player_id=-1)
@@ -23,26 +49,18 @@ def main(headless=False, num_games=100):
         results = eval_agents(agent1, agent2, num_games=num_games, board_size=9)
         return results
 
+    board_size = 9
+
     # non-headless mode (PyGame)
-    game = GomokuLogic(board_size=9)
+    game = GomokuLogic(board_size=board_size)
     board = Board(game)
 
     player_1 = HumanAgent(player_id=1)
 
-    # === CHOOSE YOUR OPPONENT ===
-    # Option 1: DQN (shaped rewards training)
-    player_2 = DQNAgent(player_id=-1, board_size=9)
-    player_2.load_model("Model/final.pt")
-    player_2.epsilon = 0.0
-
-    # Option 2: Minimax agent - strong deterministic opponent
-    # player_2 = MinimaxAgent(player_id=-1, board_size=9, skill_level= 1)
-
-    # Option 3: Strategic agent
-    # player_2 = StrategicAgent(player_id=-1, skill_level=1.0, board_size=9)
-
-    # Option 4: Random agent
-    # player_2 = RandomAgent(player_id=-1)
+    # Opponent selected by CLI option.
+    player_2 = build_opponent(
+        opponent_name=opponent, model_path=model_path, board_size=board_size
+    )
 
     players = {1: player_1, -1: player_2}
 
@@ -91,6 +109,24 @@ if __name__ == "__main__":
         default=100,
         help="Number of games to play (in headless mode)",
     )
+    parser.add_argument(
+        "--opponent",
+        type=str,
+        default="dqn",
+        choices=["dqn", "alphazero", "minimax", "strategic", "random"],
+        help="Opponent type for interactive mode",
+    )
+    parser.add_argument(
+        "--model-path",
+        type=str,
+        default="Model/final.pt",
+        help="Model path used by DQN/AlphaZero opponents",
+    )
     args = parser.parse_args()
 
-    results = main(headless=args.headless, num_games=args.num_games)
+    results = main(
+        headless=args.headless,
+        num_games=args.num_games,
+        opponent=args.opponent,
+        model_path=args.model_path,
+    )
