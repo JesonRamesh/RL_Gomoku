@@ -12,6 +12,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 import time
+import torch
 from collections import deque
 
 from game.logic import GomokuLogic
@@ -21,6 +22,24 @@ from agents.dqn_rohan import DQNAgentRohan
 from agents.random_agent import RandomAgent
 from agents.strategic_agent import StrategicAgent
 from agents.minimax_agent import MinimaxAgent
+
+
+def _save_policy_weights(agent, path):
+    """Save only inference-relevant policy weights."""
+    torch.save(agent.q_network.state_dict(), path)
+
+
+def _load_policy_weights(agent, path):
+    """Load either legacy full checkpoints or weights-only state dicts."""
+    payload = torch.load(path, map_location=agent.device, weights_only=False)
+
+    if isinstance(payload, dict) and "q_network_state_dict" in payload:
+        state_dict = payload["q_network_state_dict"]
+    else:
+        state_dict = payload
+
+    agent.q_network.load_state_dict(state_dict)
+    agent.target_network.load_state_dict(agent.q_network.state_dict())
 
 
 def evaluate_agent(agent, opponent, board_size, num_games=30):
@@ -74,8 +93,8 @@ def train_rohan(
     agent = DQNAgentRohan(player_id=1, board_size=board_size)
     
     if load_from:
-        agent.load_model(load_from)
-        print(f"Loaded model from {load_from}")
+        _load_policy_weights(agent, load_from)
+        print(f"Loaded policy weights from {load_from}")
         agent.epsilon = 0.15
     else:
         agent.epsilon = 1.0
@@ -213,7 +232,7 @@ def train_rohan(
                 
                 if current_level > max_level:
                     max_level = current_level
-                    agent.save_model(os.path.join(save_dir, f"level_{current_level}.pt"))
+                    _save_policy_weights(agent, os.path.join(save_dir, f"level_{current_level}.pt"))
                 
                 print(f"\n>>> PROMOTED to Level {current_level}: {difficulty_levels[current_level][0]} "
                       f"(win rate: {win_rate:.1%}) <<<\n")
@@ -256,10 +275,10 @@ def train_rohan(
             print(f"Max level: {max_level} ({difficulty_levels[max_level][0]})")
             print("-" * 45 + "\n")
             
-            agent.save_model(os.path.join(save_dir, "checkpoint.pt"))
+            _save_policy_weights(agent, os.path.join(save_dir, "checkpoint.pt"))
     
     # Final save
-    agent.save_model(os.path.join(save_dir, "final.pt"))
+    _save_policy_weights(agent, os.path.join(save_dir, "final.pt"))
     
     total_time = time.time() - start_time
     

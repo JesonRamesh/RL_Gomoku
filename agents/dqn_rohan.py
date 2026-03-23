@@ -183,18 +183,11 @@ class DQNAgentRohan(BaseAgent):
         self.target_network.eval()
 
     def predict(self, board_state):
-        """Selects action using epsilon-greedy with tactical awareness."""
+        """Selects action using epsilon-greedy RL policy with tactical checks."""
         valid_moves = list(zip(*np.where(board_state == 0)))
 
         if len(valid_moves) == 0:
             return None
-        
-        # Opening strategy for first few moves
-        move_count = np.sum(board_state != 0)
-        if move_count <= 4:
-            opening_move = self._get_opening_move(board_state, valid_moves)
-            if opening_move:
-                return opening_move
         
         # Always check for immediate wins or blocks
         urgent_move = self._find_urgent_move(board_state, valid_moves)
@@ -206,39 +199,6 @@ class DQNAgentRohan(BaseAgent):
         else:
             return self._get_best_action(board_state, valid_moves)
     
-    def _get_opening_move(self, board, valid_moves):
-        """Strategic opening moves."""
-        center = self.board_size // 2
-        move_count = np.sum(board != 0)
-        
-        if move_count == 0:
-            if (center, center) in valid_moves:
-                return (center, center)
-        
-        if move_count == 1:
-            if board[center, center] != 0:
-                for dr, dc in [(1, 1), (-1, -1), (1, -1), (-1, 1)]:
-                    pos = (center + dr, center + dc)
-                    if pos in valid_moves:
-                        return pos
-            if (center, center) in valid_moves:
-                return (center, center)
-        
-        if move_count <= 4:
-            my_pieces = list(zip(*np.where(board == self.player_id)))
-            if my_pieces:
-                best_moves = []
-                for pr, pc in my_pieces:
-                    for dr, dc in [(1, 1), (-1, -1), (1, -1), (-1, 1), (0, 1), (1, 0), (0, -1), (-1, 0)]:
-                        pos = (pr + dr, pc + dc)
-                        if pos in valid_moves:
-                            dist = abs(pos[0] - center) + abs(pos[1] - center)
-                            best_moves.append((pos, dist))
-                if best_moves:
-                    best_moves.sort(key=lambda x: x[1])
-                    return best_moves[0][0]
-        return None
-
     def _find_urgent_move(self, board, valid_moves):
         """Find winning move, block opponent's win, or create/block strong threats."""
         for move in valid_moves:

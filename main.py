@@ -29,19 +29,19 @@ def main(headless=False, num_games=100):
     board = Board(game)
 
     player_1 = HumanAgent(player_id=1)
-    
+
     # === CHOOSE YOUR OPPONENT ===
     # Option 1: Rohan DQN (shaped rewards training)
     player_2 = DQNAgentRohan(player_id=-1, board_size=9)
-    player_2.load_model("final.pt")
+    player_2.load_model("Model/final.pt")
     player_2.epsilon = 0.0
-    
+
     # Option 2: Minimax agent - strong deterministic opponent
     # player_2 = MinimaxAgent(player_id=-1, board_size=9, skill_level= 1)
-    
+
     # Option 3: Strategic agent
     # player_2 = StrategicAgent(player_id=-1, skill_level=1.0, board_size=9)
-    
+
     # Option 4: Random agent
     # player_2 = RandomAgent(player_id=-1)
 
@@ -95,6 +95,3 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     results = main(headless=args.headless, num_games=args.num_games)
-
-    
-
