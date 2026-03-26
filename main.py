@@ -18,7 +18,7 @@ from agents.minimax_agent import MinimaxAgent
 
 # Define paths
 DQN140_PATH = "Model/finaldqn140.pt"
-DQN160_PATH = "Model/rohan_model_160_epochs.pt"
+DQN160_PATH = "Model/rohan_model_160_epochs_slim.pt"
 AZ_QUICK_PATH = "Model/alphazero_quick_final.pt"
 AZ_PATH = "Model/alphazero_final.pt"
 
