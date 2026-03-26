@@ -16,68 +16,147 @@ from agents.base_agent import HumanAgent
 from agents.random_agent import RandomAgent
 from agents.minimax_agent import MinimaxAgent
 
+DQN140_PATH = "Model/finaldqn140.pt"
+DQN160_PATH = "Model/rohan_model_160_epochs.pt"
+AZ_QUICK_PATH = "Model/alphazero_quick_final.pt"
+AZ_PATH = "Model/alphazero_final.pt.pt"
 
-def build_opponent(opponent_name, model_path, board_size, az_simulations):
-    """Build opponent agent from CLI options."""
-    if opponent_name == "dqn":
-        if not os.path.exists(model_path):
-            raise FileNotFoundError(
-                f"DQN model file not found: '{model_path}'. "
-                "Pass a valid path with --model-path."
+HEADLESS_AGENT_CHOICES = [
+    "dqn",
+    "alphazero",
+    "minimax",
+    "strategic",
+    "random",
+]
+
+
+def default_model_path_for_agent(agent_name):
+    if agent_name == "dqn":
+        return DQN160_PATH
+    if agent_name == "alphazero":
+        return AZ_PATH
+    return None
+
+
+def build_agent(
+    agent_name,
+    player_id,
+    board_size,
+    model_path=None,
+    az_simulations=20,
+):
+    """Build any supported agent from CLI options."""
+    if model_path is None:
+        model_path = default_model_path_for_agent(agent_name)
+
+    if agent_name == "dqn":
+        if model_path is None:
+            raise ValueError(
+                "DQN requires a model path. Pass --model-path (interactive) or "
+                "--agent1-model-path/--agent2-model-path (headless)."
             )
-        agent = DQNAgent(player_id=-1, board_size=board_size)
+        if not os.path.exists(model_path):
+            raise FileNotFoundError(f"DQN model file not found: '{model_path}'.")
+
+        agent = DQNAgent(player_id=player_id, board_size=board_size)
         try:
             agent.load_model(model_path)
         except (KeyError, RuntimeError, ValueError) as exc:
             raise ValueError(
                 f"Failed to load DQN model from '{model_path}'. "
-                "If this is an AlphaZero checkpoint, run with '--opponent alphazero'."
+                "If this is an AlphaZero checkpoint, use agent type 'alphazero'."
             ) from exc
         agent.epsilon = 0.0
         return agent
 
-    if opponent_name == "alphazero":
+    if agent_name == "alphazero":
+        if model_path is None:
+            raise ValueError(
+                "AlphaZero requires a model path. Pass --model-path (interactive) "
+                "or --agent1-model-path/--agent2-model-path (headless)."
+            )
         if not os.path.exists(model_path):
             raise FileNotFoundError(
                 f"AlphaZero model file not found: '{model_path}'. "
-                "Train first or pass a valid path with --model-path."
+                "Train first or pass a valid path."
             )
+
         agent = AlphaZeroAgent(
-            player_id=-1,
+            player_id=player_id,
             board_size=board_size,
             num_simulations=az_simulations,
         )
         agent.load_model(model_path)
         return agent
 
-    if opponent_name == "minimax":
-        return MinimaxAgent(player_id=-1, board_size=board_size, skill_level=1)
+    if agent_name == "minimax":
+        return MinimaxAgent(player_id=player_id, board_size=board_size, skill_level=1)
 
-    if opponent_name == "strategic":
-        return StrategicAgent(player_id=-1, skill_level=1.0, board_size=board_size)
+    if agent_name == "strategic":
+        return StrategicAgent(
+            player_id=player_id, skill_level=1.0, board_size=board_size
+        )
 
-    if opponent_name == "random":
-        return RandomAgent(player_id=-1)
+    if agent_name == "random":
+        return RandomAgent(player_id=player_id)
 
-    raise ValueError(f"Unsupported opponent: {opponent_name}")
+    raise ValueError(f"Unsupported agent: {agent_name}")
+
+
+def build_opponent(opponent_name, model_path, board_size, az_simulations):
+    """Build opponent agent from CLI options."""
+    return build_agent(
+        agent_name=opponent_name,
+        player_id=-1,
+        board_size=board_size,
+        model_path=model_path,
+        az_simulations=az_simulations,
+    )
 
 
 def main(
     headless=False,
     num_games=100,
+    board_size=9,
     opponent="dqn",
-    model_path="Model/final.pt",
+    model_path=DQN160_PATH,
     az_simulations=20,
+    agent1_type="random",
+    agent1_model_path=None,
+    agent1_az_simulations=20,
+    agent2_type="random",
+    agent2_model_path=None,
+    agent2_az_simulations=20,
 ):
     if headless:
-        agent1 = RandomAgent(player_id=1)  # Replace with whatever agents
-        agent2 = RandomAgent(player_id=-1)
+        agent1 = build_agent(
+            agent_name=agent1_type,
+            player_id=1,
+            board_size=board_size,
+            model_path=agent1_model_path,
+            az_simulations=agent1_az_simulations,
+        )
+        agent2 = build_agent(
+            agent_name=agent2_type,
+            player_id=-1,
+            board_size=board_size,
+            model_path=agent2_model_path,
+            az_simulations=agent2_az_simulations,
+        )
 
-        # Run evaluation and get results dictionary
-        results = eval_agents(agent1, agent2, num_games=num_games, board_size=9)
+        print(
+            f"Headless eval: {agent1_type} vs {agent2_type} | "
+            f"games={num_games} | board={board_size}"
+        )
+
+        # Run evaluation and get results dictionary.
+        results = eval_agents(
+            agent1,
+            agent2,
+            num_games=num_games,
+            board_size=board_size,
+        )
         return results
-
-    board_size = 9
 
     # non-headless mode (PyGame)
     game = GomokuLogic(board_size=board_size)
@@ -191,13 +270,13 @@ if __name__ == "__main__":
         "--opponent",
         type=str,
         default="dqn",
-        choices=["dqn", "alphazero", "minimax", "strategic", "random"],
+        choices=HEADLESS_AGENT_CHOICES,
         help="Opponent type for interactive mode",
     )
     parser.add_argument(
         "--model-path",
         type=str,
-        default="Model/final.pt",
+        default=DQN160_PATH,
         help="Model path used by DQN/AlphaZero opponents",
     )
     parser.add_argument(
@@ -206,12 +285,63 @@ if __name__ == "__main__":
         default=20,
         help="MCTS simulations per move when using --opponent alphazero",
     )
+    parser.add_argument(
+        "--board-size",
+        type=int,
+        default=9,
+        help="Board size for both interactive and headless modes",
+    )
+    parser.add_argument(
+        "--agent1",
+        type=str,
+        default="random",
+        choices=HEADLESS_AGENT_CHOICES,
+        help="Headless mode: first agent type",
+    )
+    parser.add_argument(
+        "--agent2",
+        type=str,
+        default="random",
+        choices=HEADLESS_AGENT_CHOICES,
+        help="Headless mode: second agent type",
+    )
+    parser.add_argument(
+        "--agent1-model-path",
+        type=str,
+        default=None,
+        help="Headless mode: model path for agent1 if needed",
+    )
+    parser.add_argument(
+        "--agent2-model-path",
+        type=str,
+        default=None,
+        help="Headless mode: model path for agent2 if needed",
+    )
+    parser.add_argument(
+        "--agent1-az-simulations",
+        type=int,
+        default=20,
+        help="Headless mode: MCTS simulations per move for agent1 when AlphaZero",
+    )
+    parser.add_argument(
+        "--agent2-az-simulations",
+        type=int,
+        default=20,
+        help="Headless mode: MCTS simulations per move for agent2 when AlphaZero",
+    )
     args = parser.parse_args()
 
     results = main(
         headless=args.headless,
         num_games=args.num_games,
+        board_size=args.board_size,
         opponent=args.opponent,
         model_path=args.model_path,
         az_simulations=args.az_simulations,
+        agent1_type=args.agent1,
+        agent1_model_path=args.agent1_model_path,
+        agent1_az_simulations=args.agent1_az_simulations,
+        agent2_type=args.agent2,
+        agent2_model_path=args.agent2_model_path,
+        agent2_az_simulations=args.agent2_az_simulations,
     )
