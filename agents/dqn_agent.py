@@ -466,11 +466,30 @@ class DQNAgent(BaseAgent):
 
     def load_model(self, path):
         checkpoint = torch.load(path, map_location=self.device, weights_only=False)
-        self.q_network.load_state_dict(checkpoint["q_network_state_dict"])
-        self.target_network.load_state_dict(checkpoint["target_network_state_dict"])
-        self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
-        self.epsilon = checkpoint["epsilon"]
-        self.steps = checkpoint["steps"]
-        if "beta" in checkpoint:
-            self.beta = checkpoint["beta"]
-        print("Model loaded successfully.")
+
+        # Full training checkpoint format.
+        if isinstance(checkpoint, dict) and "q_network_state_dict" in checkpoint:
+            self.q_network.load_state_dict(checkpoint["q_network_state_dict"])
+            self.target_network.load_state_dict(checkpoint["target_network_state_dict"])
+            self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+            self.epsilon = checkpoint["epsilon"]
+            self.steps = checkpoint["steps"]
+            if "beta" in checkpoint:
+                self.beta = checkpoint["beta"]
+            print("Model loaded successfully.")
+            return
+
+        # Weights-only format (q_network state dict only).
+        if isinstance(checkpoint, dict):
+            try:
+                self.q_network.load_state_dict(checkpoint)
+                self.target_network.load_state_dict(self.q_network.state_dict())
+                print("Model loaded successfully (weights-only checkpoint).")
+                return
+            except RuntimeError as exc:
+                raise ValueError(
+                    "Loaded file is not a valid DQN checkpoint/state_dict. "
+                    "If this is an AlphaZero model, use AlphaZeroAgent with '--opponent alphazero'."
+                ) from exc
+
+        raise ValueError("Unsupported checkpoint format for DQNAgent.load_model")

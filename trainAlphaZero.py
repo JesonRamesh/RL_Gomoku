@@ -279,7 +279,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--replay-size", type=int, default=20000)
     parser.add_argument("--temperature-moves", type=int, default=12)
     parser.add_argument("--learning-rate", type=float, default=1e-3)
-    parser.add_argument("--num-simulations", type=int, default=120)
+    parser.add_argument("--num-simulations", type=int, default=60)
     parser.add_argument("--save-dir", type=str, default="models_alphazero")
     parser.add_argument("--save-every", type=int, default=5)
     return parser.parse_args()

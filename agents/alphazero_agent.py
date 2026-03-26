@@ -88,15 +88,19 @@ class _MCTSNode:
 
     def __init__(
         self,
-        board: np.ndarray,
+        board: Optional[np.ndarray],
         to_play: int,
         parent: Optional["_MCTSNode"] = None,
         prior: float = 0.0,
+        action_from_parent: Optional[int] = None,
+        last_move: Optional[Move] = None,
     ):
         self.board = board
         self.to_play = to_play
         self.parent = parent
         self.prior = prior
+        self.action_from_parent = action_from_parent
+        self.last_move = last_move
 
         self.visit_count = 0
         self.value_sum = 0.0
@@ -217,9 +221,22 @@ class AlphaZeroAgent(BaseAgent):
         while node.children:
             action, node = self._select_child(node)
             _ = action
+
+            # Lazily materialize child board only when traversed.
+            if node.board is None:
+                assert node.parent is not None
+                assert node.parent.board is not None
+                assert node.action_from_parent is not None
+                parent_board = node.parent.board
+                move = self._action_to_move(node.action_from_parent)
+                next_board = parent_board.copy()
+                next_board[move] = node.parent.to_play
+                node.board = next_board
+
             search_path.append(node)
 
-        winner = self._get_winner(node.board)
+        assert node.board is not None
+        winner = self._get_winner(node.board, node.last_move)
 
         # Expansion + Evaluation
         if winner is None:
@@ -236,6 +253,7 @@ class AlphaZeroAgent(BaseAgent):
             value = -value
 
     def _expand_node(self, node: _MCTSNode, add_dirichlet_noise: bool) -> float:
+        assert node.board is not None
         valid_moves = self._valid_moves(node.board)
         if not valid_moves:
             return 0.0
@@ -270,13 +288,13 @@ class AlphaZeroAgent(BaseAgent):
 
         for move in valid_moves:
             action = self._move_to_action(move)
-            next_board = node.board.copy()
-            next_board[move] = node.to_play
             node.children[action] = _MCTSNode(
-                board=next_board,
+                board=None,
                 to_play=-node.to_play,
                 parent=node,
                 prior=float(probs[action]),
+                action_from_parent=action,
+                last_move=move,
             )
 
         return float(value)
@@ -294,7 +312,9 @@ class AlphaZeroAgent(BaseAgent):
                 * child.prior
                 * (sqrt_parent_visits / (1 + child.visit_count))
             )
-            score = child.q_value + prior_score
+            # child.q_value is from child's player perspective; negate to score
+            # from the current node's player perspective.
+            score = -child.q_value + prior_score
             if score > best_score:
                 best_score = score
                 best_action = action
@@ -309,7 +329,6 @@ class AlphaZeroAgent(BaseAgent):
         state = self._encode_board(board, current_player)
         state_tensor = torch.from_numpy(state).unsqueeze(0).to(self.device)
 
-        self.network.eval()
         with torch.no_grad():
             policy_logits, value = self.network(state_tensor)
 
@@ -341,7 +360,9 @@ class AlphaZeroAgent(BaseAgent):
         ex = np.exp(x)
         return ex / (np.sum(ex) + 1e-12)
 
-    def _get_winner(self, board: np.ndarray) -> Optional[int]:
+    def _get_winner(
+        self, board: np.ndarray, last_move: Optional[Move]
+    ) -> Optional[int]:
         """
         Return winner on the given board.
 
@@ -350,38 +371,43 @@ class AlphaZeroAgent(BaseAgent):
         - 0 if draw (board full and no winner)
         - None if game is not terminal
         """
+        if last_move is None:
+            if not np.any(board == 0):
+                return 0
+            return None
+
+        row, col = last_move
+        player = board[row, col]
+        if player == 0:
+            return None
+
         directions = [(1, 0), (0, 1), (1, 1), (1, -1)]
 
-        for row in range(self.board_size):
-            for col in range(self.board_size):
-                player = board[row, col]
-                if player == 0:
-                    continue
-                for dr, dc in directions:
-                    count = 1
+        for dr, dc in directions:
+            count = 1
 
-                    r, c = row + dr, col + dc
-                    while (
-                        0 <= r < self.board_size
-                        and 0 <= c < self.board_size
-                        and board[r, c] == player
-                    ):
-                        count += 1
-                        r += dr
-                        c += dc
+            r, c = row + dr, col + dc
+            while (
+                0 <= r < self.board_size
+                and 0 <= c < self.board_size
+                and board[r, c] == player
+            ):
+                count += 1
+                r += dr
+                c += dc
 
-                    r, c = row - dr, col - dc
-                    while (
-                        0 <= r < self.board_size
-                        and 0 <= c < self.board_size
-                        and board[r, c] == player
-                    ):
-                        count += 1
-                        r -= dr
-                        c -= dc
+            r, c = row - dr, col - dc
+            while (
+                0 <= r < self.board_size
+                and 0 <= c < self.board_size
+                and board[r, c] == player
+            ):
+                count += 1
+                r -= dr
+                c -= dc
 
-                    if count >= 5:
-                        return int(player)
+            if count >= 5:
+                return int(player)
 
         if not np.any(board == 0):
             return 0
