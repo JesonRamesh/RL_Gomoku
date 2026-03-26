@@ -19,7 +19,7 @@ from agents.minimax_agent import MinimaxAgent
 DQN140_PATH = "Model/finaldqn140.pt"
 DQN160_PATH = "Model/rohan_model_160_epochs.pt"
 AZ_QUICK_PATH = "Model/alphazero_quick_final.pt"
-AZ_PATH = "Model/alphazero_final.pt.pt"
+AZ_PATH = "Model/alphazero_final.pt"
 
 HEADLESS_AGENT_CHOICES = [
     "dqn",
@@ -86,7 +86,13 @@ def build_agent(
             board_size=board_size,
             num_simulations=az_simulations,
         )
-        agent.load_model(model_path)
+        try:
+            agent.load_model(model_path)
+        except (RuntimeError, ValueError, KeyError) as exc:
+            raise ValueError(
+                f"Failed to load AlphaZero model from '{model_path}'. "
+                "If this is a DQN checkpoint, use agent type 'dqn'."
+            ) from exc
         return agent
 
     if agent_name == "minimax":
@@ -119,7 +125,7 @@ def main(
     num_games=100,
     board_size=9,
     opponent="dqn",
-    model_path=DQN160_PATH,
+    model_path=None,
     az_simulations=20,
     agent1_type="random",
     agent1_model_path=None,
@@ -276,7 +282,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--model-path",
         type=str,
-        default=DQN160_PATH,
+        default=None,
         help="Model path used by DQN/AlphaZero opponents",
     )
     parser.add_argument(
