@@ -158,6 +158,9 @@ wandb/
 *.pt
 *.ckpt
 
+# except 
+!Model/*.pt
+
 # Project model directories (large .pt + .png files, not tracked)
 models_baseline_9x9/
 models_phase2/
