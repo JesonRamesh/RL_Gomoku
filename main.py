@@ -16,10 +16,23 @@ from agents.base_agent import HumanAgent
 from agents.random_agent import RandomAgent
 from agents.minimax_agent import MinimaxAgent
 
+# Define paths
 DQN140_PATH = "Model/finaldqn140.pt"
 DQN160_PATH = "Model/rohan_model_160_epochs.pt"
 AZ_QUICK_PATH = "Model/alphazero_quick_final.pt"
 AZ_PATH = "Model/alphazero_final.pt"
+
+# Single place to configure default headless matchup.
+HEADLESS_DEFAULTS = {
+    "num_games": 2000,
+    "board_size": 9,
+    "agent1_type": "dqn",
+    "agent1_model_path": DQN140_PATH,
+    "agent1_az_simulations": 20,
+    "agent2_type": "alphazero",
+    "agent2_model_path": AZ_QUICK_PATH,
+    "agent2_az_simulations": 20,
+}
 
 HEADLESS_AGENT_CHOICES = [
     "dqn",
@@ -32,9 +45,9 @@ HEADLESS_AGENT_CHOICES = [
 
 def default_model_path_for_agent(agent_name):
     if agent_name == "dqn":
-        return DQN160_PATH
+        return DQN140_PATH
     if agent_name == "alphazero":
-        return AZ_PATH
+        return AZ_QUICK_PATH
     return None
 
 
@@ -122,18 +135,23 @@ def build_opponent(opponent_name, model_path, board_size, az_simulations):
 
 def main(
     headless=False,
-    num_games=100,
-    board_size=9,
+    num_games=HEADLESS_DEFAULTS["num_games"],
+    board_size=HEADLESS_DEFAULTS["board_size"],
     opponent="dqn",
     model_path=None,
     az_simulations=20,
-    agent1_type="random",
-    agent1_model_path=None,
-    agent1_az_simulations=20,
-    agent2_type="random",
-    agent2_model_path=None,
-    agent2_az_simulations=20,
+    agent1_type=HEADLESS_DEFAULTS["agent1_type"],
+    agent1_model_path=HEADLESS_DEFAULTS["agent1_model_path"],
+    agent1_az_simulations=HEADLESS_DEFAULTS["agent1_az_simulations"],
+    agent2_type=HEADLESS_DEFAULTS["agent2_type"],
+    agent2_model_path=HEADLESS_DEFAULTS["agent2_model_path"],
+    agent2_az_simulations=HEADLESS_DEFAULTS["agent2_az_simulations"],
 ):
+    if agent1_model_path is None:
+        agent1_model_path = default_model_path_for_agent(agent1_type)
+    if agent2_model_path is None:
+        agent2_model_path = default_model_path_for_agent(agent2_type)
+
     if headless:
         agent1 = build_agent(
             agent_name=agent1_type,
@@ -269,7 +287,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--num-games",
         type=int,
-        default=100,
+        default=HEADLESS_DEFAULTS["num_games"],
         help="Number of games to play (in headless mode)",
     )
     parser.add_argument(
@@ -294,45 +312,45 @@ if __name__ == "__main__":
     parser.add_argument(
         "--board-size",
         type=int,
-        default=9,
+        default=HEADLESS_DEFAULTS["board_size"],
         help="Board size for both interactive and headless modes",
     )
     parser.add_argument(
         "--agent1",
         type=str,
-        default="random",
+        default=HEADLESS_DEFAULTS["agent1_type"],
         choices=HEADLESS_AGENT_CHOICES,
         help="Headless mode: first agent type",
     )
     parser.add_argument(
         "--agent2",
         type=str,
-        default="random",
+        default=HEADLESS_DEFAULTS["agent2_type"],
         choices=HEADLESS_AGENT_CHOICES,
         help="Headless mode: second agent type",
     )
     parser.add_argument(
         "--agent1-model-path",
         type=str,
-        default=None,
+        default=HEADLESS_DEFAULTS["agent1_model_path"],
         help="Headless mode: model path for agent1 if needed",
     )
     parser.add_argument(
         "--agent2-model-path",
         type=str,
-        default=None,
+        default=HEADLESS_DEFAULTS["agent2_model_path"],
         help="Headless mode: model path for agent2 if needed",
     )
     parser.add_argument(
         "--agent1-az-simulations",
         type=int,
-        default=20,
+        default=HEADLESS_DEFAULTS["agent1_az_simulations"],
         help="Headless mode: MCTS simulations per move for agent1 when AlphaZero",
     )
     parser.add_argument(
         "--agent2-az-simulations",
         type=int,
-        default=20,
+        default=HEADLESS_DEFAULTS["agent2_az_simulations"],
         help="Headless mode: MCTS simulations per move for agent2 when AlphaZero",
     )
     args = parser.parse_args()
