@@ -158,6 +158,10 @@ wandb/
 *.pt
 *.ckpt
 
+# Submission models — tracked intentionally (key final weights for graders)
+!submission_models/
+!submission_models/*.pt
+
 # Project model directories (large .pt + .png files, not tracked)
 models_baseline_9x9/
 models_phase2/
