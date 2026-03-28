@@ -18,7 +18,7 @@ from tqdm import tqdm
 
 from game.logic import GomokuLogic
 from game.gomoku_env import GomokuEnv
-from agents.dqn_simple_jeson import DQNAgent
+from agents.dqn_simple import DQNAgent
 from agents.random_agent import RandomAgent
 from agents.threatening_agent import ThreateningAgent
 

@@ -7,11 +7,11 @@ the neural network guides the search, making it far stronger than a pure
 DQN which has no lookahead at all.
 
 How to use:
-    from agents.dqn_rohan import DQNAgentRohan
+    from agents.dqn_enhanced import DQNAgentEnhanced
     from agents.mcts_agent import MCTSAgent
 
-    dqn = DQNAgentRohan(player_id=1, board_size=9)
-    dqn.load_model("models_rohan/final.pt")
+    dqn = DQNAgentEnhanced(player_id=1, board_size=9)
+    dqn.load_model("models_shaped/final.pt")
     dqn.epsilon = 0.0   # Pure exploitation — no random moves during search
 
     agent = MCTSAgent(player_id=1, dqn_agent=dqn, num_simulations=300)
@@ -29,9 +29,9 @@ def preprocess_board(board, current_player):
     """
     Encode the board into a 3-channel numpy array for DQN input.
 
-    This is the same encoding used in both dqn_simple_jeson.py and dqn_rohan.py,
+    This is the same encoding used in both dqn_simple.py and dqn_enhanced.py,
     reproduced here so MCTSAgent has no dependency on a specific DQN module and
-    works with ANY trained DQNAgent or DQNAgentRohan instance.
+    works with ANY trained DQNAgent instance.
 
     Channels:
         0 — current player's pieces  (1 where current_player has a stone)
@@ -253,7 +253,7 @@ class MCTSAgent(BaseAgent):
                  num_simulations=300, c_puct=1.4):
         """
         player_id      : 1 or -1 — which player this agent controls
-        dqn_agent      : A trained DQNAgentRohan (or DQNAgent) with weights loaded
+        dqn_agent      : A trained DQNAgentEnhanced (or DQNAgent) with weights loaded
                          and epsilon set to 0.0
         board_size     : Board dimensions (default 9 for 9×9 Gomoku)
         num_simulations: How many MCTS simulations per move.

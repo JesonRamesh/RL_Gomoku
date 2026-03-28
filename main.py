@@ -4,6 +4,9 @@ import pygame
 import argparse
 
 from agents.dqn_agent import DQNAgent
+from agents.dqn_simple import DQNAgent as SimpleDQNAgent
+from agents.alphazero_net import AlphaZeroNet
+from agents.alphazero_mcts import AlphaZeroMCTS
 from game.logic import GomokuLogic
 from game.board import Board
 from game.match import eval_agents
@@ -12,6 +15,8 @@ from agents.strategic_agent import StrategicAgent
 from agents.base_agent import HumanAgent
 from agents.random_agent import RandomAgent
 from agents.minimax_agent import MinimaxAgent
+
+import torch
 
 
 def main(headless=False, num_games=100):
@@ -30,18 +35,30 @@ def main(headless=False, num_games=100):
     player_1 = HumanAgent(player_id=1)
 
     # === CHOOSE YOUR OPPONENT ===
-    # Option 1: DQN (shaped rewards training)
+
+    # Option 1: Gen 3 — Dueling DQN with PER (best overall DQN agent)
     player_2 = DQNAgent(player_id=-1, board_size=9)
     player_2.load_model("submission_models/gen3_final.pt")
     player_2.epsilon = 0.0
 
-    # Option 2: Minimax agent - strong deterministic opponent
-    # player_2 = MinimaxAgent(player_id=-1, board_size=9, skill_level= 1)
+    # Option 2: Gen 2 — Baseline DQN trained via curriculum (self-play + mixed opponents)
+    # player_2 = SimpleDQNAgent(player_id=-1, board_size=9)
+    # player_2.load_model("submission_models/gen2_best.pt")
+    # player_2.epsilon = 0.0
 
-    # Option 3: Strategic agent
+    # Option 3: Gen 4 — AlphaZero (ResNet + MCTS, strongest agent)
+    # _az_net = AlphaZeroNet(board_size=9)
+    # _az_net.load_state_dict(torch.load("submission_models/gen4_alphazero.pt", map_location="cpu", weights_only=False))
+    # _az_net.eval()
+    # player_2 = AlphaZeroMCTS(net=_az_net, player_id=-1, num_simulations=400, board_size=9)
+
+    # Option 4: Minimax agent - strong deterministic opponent
+    # player_2 = MinimaxAgent(player_id=-1, board_size=9, skill_level=1)
+
+    # Option 5: Strategic agent
     # player_2 = StrategicAgent(player_id=-1, skill_level=1.0, board_size=9)
 
-    # Option 4: Random agent
+    # Option 6: Random agent
     # player_2 = RandomAgent(player_id=-1)
 
     players = {1: player_1, -1: player_2}

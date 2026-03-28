@@ -1,5 +1,5 @@
 """
-Combined Long Run v2: Rohan's Adaptive Curriculum + Jeson's Lessons
+Combined Long Run v2: Adaptive Curriculum with targeted improvements
 
 Why train_combined_longrun.py kept failing:
     - Fixed phase schedules have no feedback mechanism.
@@ -9,14 +9,14 @@ Why train_combined_longrun.py kept failing:
     - Root cause: without adaptive curriculum, once reward hacking starts,
       nothing stops it. The schedule runs regardless of agent performance.
 
-Why Rohan's training never had this problem:
+Why the adaptive curriculum approach works:
     - Adaptive curriculum with demotion: when win rate < 25%, agent drops back
       to an easier opponent. Against easier opponents, wins are frequent and
       terminal ±1.0 dominates shaped rewards again. Q-values self-correct.
 
-This script = train_rohan.py with 3 targeted improvements from our failures:
+This script = train_shaped.py with 3 targeted improvements from our failures:
 
-    1. Ignore penalty enabled from episode 1 — same as Rohan's proven approach.
+    1. Ignore penalty enabled from episode 1 — proven approach.
        The "ignore penalty causes negative spiral at high ε" failure only occurred
        with FIXED phases that forced strategic opponents from the start. With
        adaptive curriculum at Level 0 (Random), the random opponent creates threats
@@ -24,21 +24,21 @@ This script = train_rohan.py with 3 targeted improvements from our failures:
        negative. Disabling it (previous attempt) made losses near-zero, destroying
        the Q-network's ability to distinguish wins from losses → 28% vs Random.
 
-    2. Minimum 25% random anchor (Jeson Stage 6 lesson):
-       - Rohan's anchor dropped to 15% at high levels
-       - Stage 6 proved that 20% causes strategy collapse; 25% is the floor
+    2. Minimum 25% random anchor:
+       - Previous anchor dropped to 15% at high levels
+       - Testing proved that 20% causes strategy collapse; 25% is the floor
        - New formula: max(0.25, 0.4 - level * 0.02) — never drops below 25%
 
     3. Win detection by actual game outcome, not episode_reward (bug fix):
-       - Rohan used episode_reward > 0.5 to detect wins
+       - Previous approach used episode_reward > 0.5 to detect wins
        - Shaped rewards inflate episode_reward even for losses
        - A loss with many shaped rewards: episode_reward ≈ +0.5 → false "win"
        - This causes over-eager promotion and curriculum instability
        - Fix: track terminal reward separately; curriculum only uses real wins
 
-Architecture: DQNAgentRohan (Dueling DQN + PER + AdamW) — unchanged.
+Architecture: DQNAgentEnhanced (Dueling DQN + PER + AdamW) — unchanged.
 Environment: GomokuEnvShaped — unchanged, just passes ignore_penalty_enabled.
-Curriculum:  11 levels (Random → Strat-0.9 → MM-0.7) — same as Rohan's.
+Curriculum:  11 levels (Random → Strat-0.9 → MM-0.7).
 
 Load: nothing — fresh start
 Save: models_combined_v2/
@@ -53,7 +53,7 @@ from collections import deque
 from game.logic import GomokuLogic
 from game.gomoku_env_shaped import GomokuEnvShaped
 from game.gomoku_env import GomokuEnv
-from agents.dqn_rohan import DQNAgentRohan
+from agents.dqn_enhanced import DQNAgentEnhanced
 from agents.random_agent import RandomAgent
 from agents.strategic_agent import StrategicAgent
 from agents.minimax_agent import MinimaxAgent
@@ -125,7 +125,7 @@ def train_combined_v2(
     os.makedirs(save_dir, exist_ok=True)
 
     # ── Agent ─────────────────────────────────────────────────────────────────
-    agent = DQNAgentRohan(player_id=1, board_size=board_size)
+    agent = DQNAgentEnhanced(player_id=1, board_size=board_size)
     agent.epsilon = 1.0
     agent.epsilon_end = 0.02
     agent.epsilon_decay = 0.99995   # 1.0 → 0.02 over ~100k episodes
@@ -180,9 +180,9 @@ def train_combined_v2(
     step_count = 0
 
     print("=" * 65)
-    print("COMBINED V2: Adaptive Curriculum + Jeson's Lessons")
+    print("COMBINED V2: Adaptive Curriculum with targeted improvements")
     print("=" * 65)
-    print(f"Architecture:  DQNAgentRohan (Dueling DQN + PER + AdamW)")
+    print(f"Architecture:  DQNAgentEnhanced (Dueling DQN + PER + AdamW)")
     print(f"Device:        {agent.device}")
     print(f"Epsilon:       1.0 → 0.02 over {total_episodes:,} episodes")
     print(f"Rewards:       GomokuEnvShaped (full shaped rewards + ignore penalty from ep 1)")
@@ -200,7 +200,7 @@ def train_combined_v2(
         curriculum_opponent = opp_getter()
 
         # Random anchor: minimum 25%, starting at 40% at level 0
-        # IMPROVEMENT 2: Jeson Stage 6 lesson — 20% anchor caused collapse; 25% is floor
+        # IMPROVEMENT 2: testing showed 20% anchor caused collapse; 25% is the floor
         random_anchor = max(0.25, 0.40 - current_level * 0.02)
         use_random_game = (np.random.random() < random_anchor) and (current_level > 0)
 

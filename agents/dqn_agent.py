@@ -1,6 +1,6 @@
 """
 DQN Agent with improved architecture for strategic play.
-Based on dqn_simple_jeson.py with enhancements.
+Based on dqn_simple.py with enhancements.
 """
 
 import torch
@@ -466,11 +466,21 @@ class DQNAgent(BaseAgent):
 
     def load_model(self, path):
         checkpoint = torch.load(path, map_location=self.device, weights_only=False)
-        self.q_network.load_state_dict(checkpoint["q_network_state_dict"])
-        self.target_network.load_state_dict(checkpoint["target_network_state_dict"])
-        self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
-        self.epsilon = checkpoint["epsilon"]
-        self.steps = checkpoint["steps"]
-        if "beta" in checkpoint:
-            self.beta = checkpoint["beta"]
+        # Support both full training checkpoints and lightweight weights-only saves
+        if "q_network_state_dict" in checkpoint:
+            self.q_network.load_state_dict(checkpoint["q_network_state_dict"])
+            if "target_network_state_dict" in checkpoint:
+                self.target_network.load_state_dict(checkpoint["target_network_state_dict"])
+            if "optimizer_state_dict" in checkpoint:
+                self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+            if "epsilon" in checkpoint:
+                self.epsilon = checkpoint["epsilon"]
+            if "steps" in checkpoint:
+                self.steps = checkpoint["steps"]
+            if "beta" in checkpoint:
+                self.beta = checkpoint["beta"]
+        else:
+            # Raw state_dict (weights-only save)
+            self.q_network.load_state_dict(checkpoint)
+            self.target_network.load_state_dict(checkpoint)
         print("Model loaded successfully.")

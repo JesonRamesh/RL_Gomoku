@@ -1,7 +1,7 @@
 import os
 os.environ['KMP_DUPLICATE_LIB_OK']='TRUE'
 
-from agents.dqn_simple_jeson import DQNAgent
+from agents.dqn_simple import DQNAgent
 from agents.random_agent import RandomAgent
 from agents.strategic_agent import StrategicAgent
 from game.match import eval_agents
