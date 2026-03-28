@@ -10,9 +10,6 @@ Why this works:
       so the agent must discover forks and deeper patterns to win.
     - Sparse rewards only — the win/loss signal stays clean and unbiased.
     - Difficulty scales automatically as the agent improves.
-
-Files created: models_phase2/
-Files modified: None
 """
 
 import numpy as np
@@ -27,9 +24,7 @@ from agents.random_agent import RandomAgent
 from agents.strategic_agent import StrategicAgent
 
 
-# -------------------------------------------------------
 # Evaluation helpers
-# -------------------------------------------------------
 
 def evaluate_vs_random(agent, board_size, num_games=50):
     """
@@ -112,9 +107,7 @@ def evaluate_vs_strategic(agent, board_size, skill_level, num_games=100):
     return (wins / num_games) * 100
 
 
-# -------------------------------------------------------
 # Training
-# -------------------------------------------------------
 
 def train_selfplay(num_episodes=6000, batch_size=32, train_frequency=4,
                    sync_frequency=250, save_frequency=500,
@@ -125,13 +118,6 @@ def train_selfplay(num_episodes=6000, batch_size=32, train_frequency=4,
 
     The training agent plays against a frozen copy of itself.
     The frozen copy is updated (synced) every sync_frequency episodes.
-
-    sync_frequency controls the difficulty curve:
-        Too low  (e.g. 50):   opponent tracks agent too closely,
-                               not enough time to build a skill edge.
-        Too high (e.g. 1000): opponent falls behind, games become
-                               one-sided and the learning signal weakens.
-        250 episodes is a good balance for a 6000-episode run.
     """
     os.makedirs(save_dir, exist_ok=True)
 
@@ -163,7 +149,7 @@ def train_selfplay(num_episodes=6000, batch_size=32, train_frequency=4,
     print("=" * 60)
     print(f"Baseline model:    {baseline_path}")
     print(f"Device:            {agent.device}")
-    print(f"Starting epsilon:  {agent.epsilon}  ->  {agent.epsilon_end}")
+    print(f"Starting epsilon:  {agent.epsilon}  to  {agent.epsilon_end}")
     print(f"Episodes:          {num_episodes}")
     print(f"Opponent sync:     every {sync_frequency} episodes")
     print(f"Rewards:           Sparse only (Win +1, Loss -1, Ongoing 0)")
@@ -231,7 +217,7 @@ def train_selfplay(num_episodes=6000, batch_size=32, train_frequency=4,
             frozen_opponent.q_network.load_state_dict(agent.q_network.state_dict())
             frozen_opponent.target_network.load_state_dict(agent.target_network.state_dict())
             sync_episodes.append(episode + 1)
-            print(f"  [Sync] Frozen opponent updated at episode {episode + 1}")
+            print(f"Frozen opponent updated at episode {episode + 1}")
 
         # Log every 10 episodes
         if (episode + 1) % 10 == 0:
@@ -275,9 +261,9 @@ def train_selfplay(num_episodes=6000, batch_size=32, train_frequency=4,
     final_vs_strategic_05 = evaluate_vs_strategic(agent, board_size, skill_level=0.5, num_games=100)
 
     print(f"\nFinal Results:")
-    print(f"  vs RandomAgent:        {final_vs_random:.1f}%   (baseline was 95-97%)")
-    print(f"  vs StrategicAgent-0.3: {final_vs_strategic_03:.1f}%   (baseline was 25-35%)")
-    print(f"  vs StrategicAgent-0.5: {final_vs_strategic_05:.1f}%   (baseline was ~20%)")
+    print(f"vs RandomAgent: {final_vs_random:.1f}%")
+    print(f"vs StrategicAgent-0.3: {final_vs_strategic_03:.1f}%")
+    print(f"vs StrategicAgent-0.5: {final_vs_strategic_05:.1f}%")
     print("=" * 60)
 
     agent.save_model(os.path.join(save_dir, "phase2_final.pt"))

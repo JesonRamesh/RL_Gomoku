@@ -42,7 +42,6 @@ class DQNetwork(nn.Module):
 def preprocess_board(board, current_player):
     """
     Preprocess the board state into a 3-channel tensor for the DQN.
-    IMPORTANT: Must match format used in 100% model!
     
     Channel 0: Current player's pieces
     Channel 1: Opponent's pieces

@@ -25,7 +25,7 @@ def train_dqn(num_episodes=10000, batch_size=32, train_frequency=4, save_frequen
         gamma=0.95,
         epsilon_start=1.0,
         epsilon_end=0.05,
-        epsilon_decay=0.9995,  # ← SLOWER decay
+        epsilon_decay=0.9995, 
         buffer_capacity=50000,
         target_update_frequency=500
     )
@@ -39,14 +39,14 @@ def train_dqn(num_episodes=10000, batch_size=32, train_frequency=4, save_frequen
     epsilon_history = []
 
     print("=" * 60)
-    print("🎯 BASELINE Training: Residual Architecture vs RandomAgent")
+    print("BASELINE Training: Residual Architecture vs RandomAgent")
     print("=" * 60)
     print(f"Device: {dqn_agent.device}")
     print(f"Rewards: SPARSE (Win: +1, Loss: -1, Ongoing: 0)")
     print(f"Opponent: RandomAgent ONLY")
     print(f"Goal: Stable 98-100% win rate")
     print(f"Total Episodes: {num_episodes}")
-    print(f"Epsilon decay: 0.9995 (reaches 0.1 at ~4600 episodes)")
+    print(f"Epsilon decay: 0.9995 ")
     print("=" * 60)
 
     start_time = time.time()
@@ -112,7 +112,7 @@ def train_dqn(num_episodes=10000, batch_size=32, train_frequency=4, save_frequen
                   f"Reward: {avg_reward:.2f} | "
                   f"Length: {avg_length:.1f} | "
                   f"Loss: {avg_loss:.4f} | "
-                  f"ε: {dqn_agent.epsilon:.3f} | "
+                  f"epsilon: {dqn_agent.epsilon:.3f} | "
                   f"Buffer: {len(dqn_agent.replay_buffer)}")
 
         # Evaluation
@@ -121,7 +121,7 @@ def train_dqn(num_episodes=10000, batch_size=32, train_frequency=4, save_frequen
             win_rates.append(win_rate)
             
             print(f"\n{'='*60}")
-            print(f"📊 Evaluation at Episode {episode + 1}")
+            print(f"Evaluation at Episode {episode + 1}")
             print(f"Win Rate vs Random: {win_rate:.1f}%")
             print(f"Best So Far: {max(best_win_rate, win_rate):.1f}%")
             
@@ -137,7 +137,7 @@ def train_dqn(num_episodes=10000, batch_size=32, train_frequency=4, save_frequen
                 best_win_rate = win_rate
                 best_model_path = os.path.join(save_dir, "dqn_baseline_best.pt")
                 dqn_agent.save_model(best_model_path)
-                print(f"💾 New best model saved: {win_rate:.1f}%\n")
+                print(f"New best model saved: {win_rate:.1f}%\n")
             
             # Check for STABLE 98%+ (5 consecutive evaluations)
             if len(win_rates) >= 5 and not stable_98_achieved:
@@ -145,12 +145,12 @@ def train_dqn(num_episodes=10000, batch_size=32, train_frequency=4, save_frequen
                 last_5_min = min(win_rates[-5:])
                 if last_5_avg >= 98.0 and last_5_min >= 95.0:
                     stable_98_achieved = True
-                    print(f"\n🏆 STABLE SUCCESS ACHIEVED!")
-                    print(f"   Last 5 evals average: {last_5_avg:.1f}%")
-                    print(f"   Minimum in last 5: {last_5_min:.1f}%")
-                    print(f"   Episode: {episode + 1}")
-                    print(f"   Epsilon: {dqn_agent.epsilon:.3f}")
-                    print(f"   Continuing training for robustness...\n")
+                    print(f"\nSTABLE SUCCESS ACHIEVED!")
+                    print(f"Last 5 evals average: {last_5_avg:.1f}%")
+                    print(f"Minimum in last 5: {last_5_min:.1f}%")
+                    print(f"Episode: {episode + 1}")
+                    print(f"Epsilon: {dqn_agent.epsilon:.3f}")
+                    print(f"Continuing training for robustness...\n")
 
         # Save checkpoint
         if (episode + 1) % save_frequency == 0:
@@ -160,7 +160,7 @@ def train_dqn(num_episodes=10000, batch_size=32, train_frequency=4, save_frequen
     # Training complete
     elapsed_time = time.time() - start_time
     print("\n" + "=" * 60)
-    print("✅ Training Complete!")
+    print("Training Complete!")
     print(f"Best Win Rate: {best_win_rate:.1f}%")
     print(f"Final Win Rate: {win_rates[-1]:.1f}%")
     
@@ -181,7 +181,7 @@ def train_dqn(num_episodes=10000, batch_size=32, train_frequency=4, save_frequen
 
     return dqn_agent
 
-# Add this function after the train_dqn() function (around line 140)
+
 
 def train_dqn_continued(agent, start_episode, num_episodes, batch_size=32, 
                         train_frequency=4, save_frequency=500, eval_frequency=100, 
@@ -199,7 +199,7 @@ def train_dqn_continued(agent, start_episode, num_episodes, batch_size=32,
     epsilon_history = []
     
     print("=" * 60)
-    print("🔄 CONTINUING BASELINE TRAINING")
+    print("CONTINUING BASELINE TRAINING")
     print("=" * 60)
     print(f"Starting from episode {start_episode}")
     print(f"Training {num_episodes} more episodes")
@@ -208,7 +208,7 @@ def train_dqn_continued(agent, start_episode, num_episodes, batch_size=32,
     
     start_time = time.time()
     step_count = 0
-    best_win_rate = 92.0  # Your previous best
+    best_win_rate = 92.0  #  previous best
     
     for episode in range(num_episodes):
         episode_num = start_episode + episode
@@ -270,7 +270,7 @@ def train_dqn_continued(agent, start_episode, num_episodes, batch_size=32,
                   f"Reward: {avg_reward:.2f} | "
                   f"Length: {avg_length:.1f} | "
                   f"Loss: {avg_loss:.4f} | "
-                  f"ε: {agent.epsilon:.3f}")
+                  f"epsilon: {agent.epsilon:.3f}")
         
         # Evaluation
         if (episode + 1) % eval_frequency == 0:
@@ -278,7 +278,7 @@ def train_dqn_continued(agent, start_episode, num_episodes, batch_size=32,
             win_rates.append(win_rate)
             
             print(f"\n{'='*60}")
-            print(f"📊 Evaluation at Episode {episode_num + 1}")
+            print(f"Evaluation at Episode {episode_num + 1}")
             print(f"Win Rate: {win_rate:.1f}%")
             print(f"Best: {max(best_win_rate, win_rate):.1f}%")
             
@@ -292,7 +292,7 @@ def train_dqn_continued(agent, start_episode, num_episodes, batch_size=32,
                 best_win_rate = win_rate
                 best_path = os.path.join(save_dir, "dqn_baseline_best.pt")
                 agent.save_model(best_path)
-                print(f"💾 New best: {win_rate:.1f}%\n")
+                print(f"New best: {win_rate:.1f}%\n")
         
         # Save checkpoint
         if (episode + 1) % save_frequency == 0:
@@ -301,7 +301,7 @@ def train_dqn_continued(agent, start_episode, num_episodes, batch_size=32,
     
     elapsed_time = time.time() - start_time
     print("\n" + "=" * 60)
-    print("✅ Extension Training Complete!")
+    print("Extension Training Complete!")
     print(f"Best Win Rate: {best_win_rate:.1f}%")
     print(f"Final Win Rate: {win_rates[-1]:.1f}%")
     
@@ -402,7 +402,7 @@ def plot_training_metrics(episode_rewards, losses, epsilon_history, win_rates,
     plt.tight_layout()
     plot_path = os.path.join(save_dir, 'baseline_training_curves.png')
     plt.savefig(plot_path, dpi=300)
-    print(f"📈 Training curves saved to {plot_path}")
+    print(f"Training curves saved to {plot_path}")
     plt.close()
 
 # 15x15 CONFIG (for reference, not used in this script)
@@ -437,7 +437,7 @@ def plot_training_metrics(episode_rewards, losses, epsilon_history, win_rates,
 #         eval_frequency=100,
 #         eval_games=50,
 #         board_size=9,  # ← 9×9 board
-#         save_dir="models_baseline_9x9"  # ← Separate folder
+#         save_dir="models_baseline_9x9"  # Separate folder
 #     )
     
 #     print("\n" + "="*70)
@@ -445,7 +445,7 @@ def plot_training_metrics(episode_rewards, losses, epsilon_history, win_rates,
 
 if __name__ == "__main__":
     print("\n" + "="*70)
-    print("🎯 9x9 GOMOKU BASELINE TRAINING - EXTENSION")
+    print("9x9 GOMOKU BASELINE TRAINING - EXTENSION")
     print("="*70)
     print("Board Size: 9x9")
     print("Opponent: RandomAgent")
@@ -466,10 +466,10 @@ if __name__ == "__main__":
     agent.epsilon_end = 0.01  # Even lower floor
     agent.epsilon_decay = 0.9995
     
-    print(f"📥 Loaded checkpoint from episode 30000")
-    print(f"   Current ε: {agent.epsilon:.3f}")
-    print(f"   Target ε: {agent.epsilon_end:.3f}")
-    print(f"   Replay buffer: {len(agent.replay_buffer)} experiences\n")
+    print(f"Loaded checkpoint from episode 30000")
+    print(f"Current epsilon: {agent.epsilon:.3f}")
+    print(f"Target epsilon: {agent.epsilon_end:.3f}")
+    print(f"Replay buffer: {len(agent.replay_buffer)} experiences\n")
     
     trained_agent = train_dqn_continued(
         agent=agent,  # Pass loaded agent
