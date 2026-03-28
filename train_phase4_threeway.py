@@ -1,33 +1,14 @@
 """
 Phase 4 Training: Three-Way Mixed Opponents (Self-Play + Random + Strategic-0.3)
 
-Builds directly on Phase 3's two working fixes:
-    - Buffer warmup (500 episodes, no weight updates)
-    - Mixed opponents to prevent strategy collapse
-
-New addition: StrategicAgent-0.3 is added to the opponent pool at 20%.
+Extends Phase 3 by introducing StrategicAgent-0.3 into the opponent pool.
 
 Opponent split:
-    - 60% frozen self-play copy   (strategic development)
-    - 25% RandomAgent             (skill anchoring, prevents Q-value drift)
-    - 15% StrategicAgent-0.3      (direct exposure to rule-based strategic patterns)
+    - 60% frozen self-play copy    (strategic development)
+    - 25% RandomAgent              (skill anchoring, prevents Q-value drift)
+    - 15% StrategicAgent-0.3       (exposure to rule-based strategic patterns)
 
-Rationale:
-    Phase 4 v1 (60/20/20) failed: reducing Random from 30% to 20% fell below the
-    recovery threshold. When sync-point dips hit after episode 4500, the weakened
-    Random anchor could not refresh blocking Q-values quickly enough, producing the
-    same late-stage collapse as Stage 4.
-
-    Fix: restore Random to 25% (closer to Phase 3's proven 30%) and reduce Strategic
-    from 20% to 15%. Strategic exposure is still sufficient for direct pattern learning;
-    the stronger anchor prevents collapse.
-
-    Also added: mid-training evaluation vs Strategic-0.3 every 500 episodes so the
-    best strategic checkpoint is tracked and saved separately from the best vs-Random
-    checkpoint.
-
-Files created: models_phase4_v2/
-Files read:    models_phase3/phase3_best.pt
+Also tracks a separate best-strategic checkpoint evaluated every 500 episodes.
 """
 
 import numpy as np
@@ -43,10 +24,7 @@ from agents.random_agent import RandomAgent
 from agents.strategic_agent import StrategicAgent
 
 
-# -------------------------------------------------------
 # Evaluation helpers
-# -------------------------------------------------------
-
 def evaluate_vs_random(agent, board_size, num_games=50):
     """Play num_games against RandomAgent and return the agent's win percentage."""
     random_opponent = RandomAgent(player_id=-1)
@@ -119,10 +97,7 @@ def evaluate_vs_strategic(agent, board_size, skill_level, num_games=100):
     return (wins / num_games) * 100
 
 
-# -------------------------------------------------------
 # Helper: play one episode against a given opponent
-# -------------------------------------------------------
-
 def play_episode(agent, opponent, board_size):
     """
     Play one full episode between the agent and the given opponent.
@@ -164,27 +139,18 @@ def play_episode(agent, opponent, board_size):
     return episode_reward, experiences
 
 
-# -------------------------------------------------------
 # Training
-# -------------------------------------------------------
-
 def train_threeway(num_episodes=6000, warmup_episodes=500, batch_size=32,
                    train_frequency=4, self_play_ratio=0.60, random_ratio=0.25,
                    sync_frequency=500, save_frequency=500,
                    eval_frequency=100, eval_games=50, eval_strategic_frequency=500,
                    board_size=9, save_dir="models_phase4_v2"):
     """
-    Phase 4 v2: Three-way mixed opponent training (fixed random anchor).
+    Phase 4 main training loop: three-way mixed opponent training with buffer warmup.
 
-    Opponent selection each episode:
-        [0,          self_play_ratio)  -> frozen self-play copy
-        [self_play_ratio, self_play_ratio+random_ratio) -> RandomAgent
-        [self_play_ratio+random_ratio, 1.0)             -> StrategicAgent-0.3
-
-    With defaults: 60% self-play, 25% random, 15% strategic-0.3.
-
-    Also evaluates vs Strategic-0.3 every eval_strategic_frequency episodes and
-    saves phase4_best_strategic.pt at the best strategic checkpoint.
+    Selects from frozen self-play, RandomAgent, and StrategicAgent-0.3 each episode
+    according to the configured ratios. Evaluates vs Strategic-0.3 every
+    eval_strategic_frequency episodes and saves the best strategic checkpoint separately.
     """
     assert self_play_ratio + random_ratio <= 1.0, "Ratios must sum to at most 1.0"
     strategic_ratio = 1.0 - self_play_ratio - random_ratio
@@ -223,25 +189,23 @@ def train_threeway(num_episodes=6000, warmup_episodes=500, batch_size=32,
     print("=" * 60)
     print("PHASE 4: Three-Way Mixed Opponent Training")
     print("=" * 60)
-    print(f"Starting model:    {start_model_path}")
-    print(f"Device:            {agent.device}")
-    print(f"Starting epsilon:  {agent.epsilon}  ->  {agent.epsilon_end}")
-    print(f"Warmup episodes:   {warmup_episodes} (no weight updates)")
+    print(f"Starting model: {start_model_path}")
+    print(f"Device: {agent.device}")
+    print(f"Starting epsilon: {agent.epsilon}  ->  {agent.epsilon_end}")
+    print(f"Warmup episodes: {warmup_episodes} (no weight updates)")
     print(f"Training episodes: {num_episodes}")
-    print(f"Opponent split:    {int(self_play_ratio*100)}% self-play  |  "
+    print(f"Opponent split: {int(self_play_ratio*100)}% self-play  |  "
           f"{int(random_ratio*100)}% RandomAgent  |  "
           f"{int(strategic_ratio*100)}% StrategicAgent-0.3")
-    print(f"Sync frequency:    every {sync_frequency} episodes")
-    print(f"Strategic eval:    every {eval_strategic_frequency} episodes")
-    print(f"Rewards:           Sparse only (Win +1, Loss -1, Ongoing 0)")
+    print(f"Sync frequency: every {sync_frequency} episodes")
+    print(f"Strategic eval: every {eval_strategic_frequency} episodes")
+    print(f"Rewards: Sparse only (Win +1, Loss -1, Ongoing 0)")
     print("=" * 60 + "\n")
 
     start_time = time.time()
 
-    # ---------------------------------------------------
     # WARMUP PHASE: fill the buffer before training begins
-    # ---------------------------------------------------
-    print(f"--- Warmup Phase: {warmup_episodes} episodes (no weight updates) ---")
+    print(f" Warmup Phase: {warmup_episodes} episodes (no weight updates) ")
 
     for episode in range(warmup_episodes):
         opponent = _select_opponent(
@@ -260,9 +224,7 @@ def train_threeway(num_episodes=6000, warmup_episodes=500, batch_size=32,
     print(f"\nWarmup complete. Buffer contains {len(agent.replay_buffer)} experiences.")
     print("Starting training...\n")
 
-    # ---------------------------------------------------
     # TRAINING PHASE
-    # ---------------------------------------------------
     step_count = 0
     best_win_rate_vs_random = 0.0
     best_win_rate_vs_strategic = 0.0
@@ -298,7 +260,7 @@ def train_threeway(num_episodes=6000, warmup_episodes=500, batch_size=32,
                 agent.target_network.state_dict()
             )
             sync_episodes.append(episode + 1)
-            print(f"  [Sync] Frozen opponent updated at episode {episode + 1}")
+            print(f"Frozen opponent updated at episode {episode + 1}")
 
         # Log every 10 episodes
         if (episode + 1) % 10 == 0:
@@ -351,7 +313,7 @@ def train_threeway(num_episodes=6000, warmup_episodes=500, batch_size=32,
     print("Phase 4 Training Complete")
     print("=" * 60)
     print(f"Total Time: {elapsed / 3600:.2f} hours")
-    print(f"Best Win Rate vs Random:      {best_win_rate_vs_random:.1f}%")
+    print(f"Best Win Rate vs Random: {best_win_rate_vs_random:.1f}%")
     print(f"Best Win Rate vs Strategic-0.3: {best_win_rate_vs_strategic:.1f}%")
 
     print("\nRunning final evaluations (100 games each) ...")
@@ -364,9 +326,9 @@ def train_threeway(num_episodes=6000, warmup_episodes=500, batch_size=32,
     )
 
     print(f"\nFinal Results:")
-    print(f"  vs RandomAgent:        {final_vs_random:.1f}%   (Phase 3 was 98%)")
-    print(f"  vs StrategicAgent-0.3: {final_vs_strategic_03:.1f}%   (Phase 3 was 42%)")
-    print(f"  vs StrategicAgent-0.5: {final_vs_strategic_05:.1f}%   (Phase 3 was 28%)")
+    print(f"vs RandomAgent:        {final_vs_random:.1f}%")
+    print(f"vs StrategicAgent-0.3: {final_vs_strategic_03:.1f}%")
+    print(f"vs StrategicAgent-0.5: {final_vs_strategic_05:.1f}%")
     print("=" * 60)
 
     agent.save_model(os.path.join(save_dir, "phase4_final.pt"))
@@ -445,12 +407,9 @@ def train_threeway(num_episodes=6000, warmup_episodes=500, batch_size=32,
     return agent
 
 
-# -------------------------------------------------------
 # Opponent selection helpers
-# -------------------------------------------------------
-
 def _select_opponent(frozen, random_opp, strategic, self_play_ratio, random_ratio):
-    """Return one of the three opponents based on the configured ratios."""
+    """Sample one opponent from the three-way pool using the configured ratios."""
     roll = random.random()
     if roll < self_play_ratio:
         return frozen
@@ -476,7 +435,7 @@ if __name__ == "__main__":
         batch_size=32,
         train_frequency=4,
         self_play_ratio=0.60,
-        random_ratio=0.25,       # restored from 0.20 — critical for preventing collapse
+        random_ratio=0.25,    
         sync_frequency=500,
         save_frequency=500,
         eval_frequency=100,

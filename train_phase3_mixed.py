@@ -1,22 +1,10 @@
 """
 Phase 3 Training: Mixed Opponents (Self-Play + RandomAgent)
 
-Fixes the two failure modes from Phase 2 Continuation:
-
-    Problem 1 — Empty buffer on restart:
-        Solved by a warmup phase. The agent plays 500 episodes before any
-        weight updates begin, filling the buffer with diverse experiences.
-        This prevents the correlated-gradient corruption that damaged Stage 4
-        from the very first training step.
-
-    Problem 2 — Strategy collapse from pure self-play:
-        Solved by mixing opponents. Each episode randomly picks either the
-        frozen self-play opponent (70%) or RandomAgent (30%). The 30% random
-        games continuously refresh basic defensive skills in the buffer so
-        Q-values for blocking threats never decay from disuse.
-
-Files created: models_phase3/
-Files modified: None
+Builds on Phase 2 with two improvements:
+    - Buffer warmup: 500 episodes with no weight updates before training begins.
+    - Mixed opponents: 70% frozen self-play, 30% RandomAgent to prevent
+      strategy collapse and keep defensive Q-values calibrated.
 """
 
 import numpy as np
@@ -32,16 +20,10 @@ from agents.random_agent import RandomAgent
 from agents.strategic_agent import StrategicAgent
 
 
-# -------------------------------------------------------
 # Evaluation helpers
-# -------------------------------------------------------
 
 def evaluate_vs_random(agent, board_size, num_games=50):
-    """
-    Play num_games against RandomAgent and return the agent's win percentage.
-    Run every eval_frequency episodes to confirm no regression.
-    Agent plays with epsilon=0 (pure exploitation).
-    """
+    """Evaluate agent against RandomAgent. Returns win percentage over num_games."""
     random_opponent = RandomAgent(player_id=-1)
     original_epsilon = agent.epsilon
     agent.epsilon = 0.0
@@ -76,11 +58,7 @@ def evaluate_vs_random(agent, board_size, num_games=50):
 
 
 def evaluate_vs_strategic(agent, board_size, skill_level, num_games=100):
-    """
-    Play num_games against StrategicAgent at a given skill level.
-    Only used for the final evaluation after training is complete.
-    Agent plays with epsilon=0 (pure exploitation).
-    """
+    """Evaluate agent against StrategicAgent at the given skill level. Returns win percentage."""
     strategic_opponent = StrategicAgent(
         player_id=-1, skill_level=skill_level, board_size=board_size
     )
@@ -116,16 +94,9 @@ def evaluate_vs_strategic(agent, board_size, skill_level, num_games=100):
     return (wins / num_games) * 100
 
 
-# -------------------------------------------------------
 # Helper: play one episode against a given opponent
-# -------------------------------------------------------
-
 def play_episode(agent, opponent, board_size):
-    """
-    Play one full episode between the agent and the given opponent.
-    Returns (episode_reward, list_of_experiences).
-    The caller decides whether to store experiences and call train_step.
-    """
+    """Play one full episode. Returns (episode_reward, list_of_experiences)."""
     game_logic = GomokuLogic(board_size=board_size)
     env = GomokuEnv(game_logic, use_sparse_rewards=True)
     state = env.reset()
@@ -163,26 +134,16 @@ def play_episode(agent, opponent, board_size):
     return episode_reward, experiences
 
 
-# -------------------------------------------------------
 # Training
-# -------------------------------------------------------
-
 def train_mixed(num_episodes=6000, warmup_episodes=500, batch_size=32,
                 train_frequency=4, self_play_ratio=0.70, sync_frequency=500,
                 save_frequency=500, eval_frequency=100, eval_games=50,
                 board_size=9, save_dir="models_phase3"):
     """
-    Phase 3: Mixed opponent training with a buffer warmup phase.
+    Phase 3 main training loop: mixed opponent training with buffer warmup.
 
-    Each training episode randomly picks one of two opponents:
-        - Frozen self-play copy (self_play_ratio=70%): strategic development
-        - RandomAgent           (1 - self_play_ratio=30%): skill anchoring
-
-    The 30% RandomAgent games keep basic defensive Q-values calibrated,
-    preventing the strategy collapse seen in Phase 2 Continuation.
-
-    The warmup phase plays warmup_episodes before any weight updates begin,
-    filling the buffer with diverse experiences before training starts.
+    Randomly selects between frozen self-play (self_play_ratio) and RandomAgent
+    each episode. Warmup fills the buffer before any weight updates begin.
     """
     os.makedirs(save_dir, exist_ok=True)
 
@@ -213,23 +174,21 @@ def train_mixed(num_episodes=6000, warmup_episodes=500, batch_size=32,
     print("=" * 60)
     print("PHASE 3: Mixed Opponent Training")
     print("=" * 60)
-    print(f"Starting model:    {start_model_path}")
-    print(f"Device:            {agent.device}")
-    print(f"Starting epsilon:  {agent.epsilon}  ->  {agent.epsilon_end}")
-    print(f"Warmup episodes:   {warmup_episodes} (no weight updates)")
+    print(f"Starting model:{start_model_path}")
+    print(f"Device: {agent.device}")
+    print(f"Starting epsilon: {agent.epsilon}  to  {agent.epsilon_end}")
+    print(f"Warmup episodes: {warmup_episodes} (no weight updates)")
     print(f"Training episodes: {num_episodes}")
-    print(f"Opponent split:    {int(self_play_ratio*100)}% self-play  |  "
+    print(f"Opponent split: {int(self_play_ratio*100)}% self-play  |  "
           f"{int((1-self_play_ratio)*100)}% RandomAgent")
-    print(f"Sync frequency:    every {sync_frequency} episodes")
-    print(f"Rewards:           Sparse only (Win +1, Loss -1, Ongoing 0)")
+    print(f"Sync frequency: every {sync_frequency} episodes")
+    print(f"Rewards: Sparse only (Win +1, Loss -1, Ongoing 0)")
     print("=" * 60 + "\n")
 
     start_time = time.time()
 
-    # ---------------------------------------------------
     # WARMUP PHASE: fill the buffer before training begins
-    # ---------------------------------------------------
-    print(f"--- Warmup Phase: {warmup_episodes} episodes (no weight updates) ---")
+    print(f"Warmup Phase: {warmup_episodes} episodes (no weight updates)")
 
     for episode in range(warmup_episodes):
 
@@ -252,9 +211,7 @@ def train_mixed(num_episodes=6000, warmup_episodes=500, batch_size=32,
     print(f"\nWarmup complete. Buffer contains {len(agent.replay_buffer)} experiences.")
     print("Starting training...\n")
 
-    # ---------------------------------------------------
     # TRAINING PHASE
-    # ---------------------------------------------------
     step_count = 0
     best_win_rate_vs_random = 0.0
 
@@ -284,7 +241,7 @@ def train_mixed(num_episodes=6000, warmup_episodes=500, batch_size=32,
             frozen_opponent.q_network.load_state_dict(agent.q_network.state_dict())
             frozen_opponent.target_network.load_state_dict(agent.target_network.state_dict())
             sync_episodes.append(episode + 1)
-            print(f"  [Sync] Frozen opponent updated at episode {episode + 1}")
+            print(f"Frozen opponent updated at episode {episode + 1}")
 
         # Log every 10 episodes
         if (episode + 1) % 10 == 0:
@@ -303,8 +260,8 @@ def train_mixed(num_episodes=6000, warmup_episodes=500, batch_size=32,
             win_rates_vs_random.append(win_rate)
 
             print(f"\n--- Evaluation at Episode {episode + 1} ---")
-            print(f"Win Rate vs Random:  {win_rate:.1f}%")
-            print(f"Best vs Random:      {max(best_win_rate_vs_random, win_rate):.1f}%\n")
+            print(f"Win Rate vs Random: {win_rate:.1f}%")
+            print(f"Best vs Random: {max(best_win_rate_vs_random, win_rate):.1f}%\n")
 
             if win_rate > best_win_rate_vs_random:
                 best_win_rate_vs_random = win_rate
@@ -334,9 +291,9 @@ def train_mixed(num_episodes=6000, warmup_episodes=500, batch_size=32,
     )
 
     print(f"\nFinal Results:")
-    print(f"  vs RandomAgent:        {final_vs_random:.1f}%   (Phase 2 was 95%)")
-    print(f"  vs StrategicAgent-0.3: {final_vs_strategic_03:.1f}%   (Phase 2 was 40%)")
-    print(f"  vs StrategicAgent-0.5: {final_vs_strategic_05:.1f}%   (Phase 2 was 10%)")
+    print(f"vs RandomAgent:        {final_vs_random:.1f}%")
+    print(f"vs StrategicAgent-0.3: {final_vs_strategic_03:.1f}%")
+    print(f"vs StrategicAgent-0.5: {final_vs_strategic_05:.1f}%")
     print("=" * 60)
 
     agent.save_model(os.path.join(save_dir, "phase3_final.pt"))
