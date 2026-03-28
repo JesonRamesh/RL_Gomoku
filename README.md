@@ -239,3 +239,121 @@ class MyAgent(BaseAgent):
 | `.gitignore` | Added `*.pt`, model directories, archive, and dev artefacts |
 | New agents | `dqn_jeson.py`, `dqn_simple_jeson.py`, `threatening_agent.py`, `strategic_agent.py` |
 | New scripts | Full training pipeline (5 stages) + evaluation scripts |
+
+## Setup for UCL remote GPU access for training
+
+Navigate to /scratch0/$USER
+Clone Repo: https://github.com/JesonRamesh/RL_Gomoku.git
+run: cd RL_Gomoku
+```bash
+cd /scratch0/$USER # replace $USER with user
+git clone https://github.com/JesonRamesh/RL_Gomoku.git
+cd RL_Gomoku
+```
+
+### uv setup
+
+Configure ~/.bashrc
+
+```bash
+nano ~/.bashrc
+```
+
+```bash
+# 1. Define your workspace on the big drive (ALL CAPS)
+export WORKSPACE="/scratch0/$USER$"
+
+# 2. Force Singularity to use Scratch for caching
+export SINGULARITY_CACHEDIR="$WORKSPACE/.cache/singularity"
+export SINGULARITY_TMPDIR="$WORKSPACE/.tmp"
+
+# 3. Create the directories safely
+mkdir -p "$SINGULARITY_CACHEDIR" "$SINGULARITY_TMPDIR"
+
+# 4. uv environment variables
+export UV_CACHE_DIR="$WORKSPACE/.cache/uv"
+export UV_PYTHON_INSTALL_DIR="$WORKSPACE/.local/share/uv/python"
+
+# 5. Safely load the uv tool environment ONLY if it exists
+if [ -f "$WORKSPACE/uv_tool/env" ]; then
+    . "$WORKSPACE/uv_tool/env"
+fi
+
+. "/scratch0/$USER/uv_tool/env"
+
+. "$HOME/.local/bin/env"
+
+```
+
+Download uv and refresh bash (recommend use bash)
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | UV_INSTALL_DIR="/scratch0/$USER$/uv_tool" sh
+source ~/.bashrc
+```
+
+### Installing torch and other dependencies
+
+Check cuda version (if using)
+
+```bash
+nvidia-smi
+```
+
+Add uv packages
+
+```bash
+uv sync
+uv add pygame numpy matplotlib
+```
+
+```bash
+uv add torch --index https://download.pytorch.org/whl/$CUDAVERSION # replace with cuda version e.g. cu126
+```
+
+#### If that fails copy this into pyproject.toml under dependencies:
+
+```bash
+[[tool.uv.index]]
+name = "pytorch-cuda"
+# Replace with whatever cuda version from nvidia-smi
+url = "https://download.pytorch.org/whl/cu130" 
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cuda" }
+```
+
+Then run:
+```bash
+uv add torch
+```
+
+
+Activate uv environment
+
+```bash
+source .venv/bin/activate
+```
+
+### Setting up tmux for background processes
+
+```bash
+# Initialise tmux instance called training
+tmux new -s training
+```
+
+Run training script e.g.
+
+```bash
+bash
+source .venv/bin/activate
+python trainAlphaZero.py
+```
+
+Press Ctrl + B, D to exit
+
+```bash
+# To reconnect
+tmux attach -t training
+```

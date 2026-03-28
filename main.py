@@ -19,7 +19,7 @@ from agents.minimax_agent import MinimaxAgent
 # Define paths
 DQN140_PATH = "Model/finaldqn140.pt"
 DQN160_PATH = "Model/rohan_model_160_epochs_slim.pt"
-AZ_QUICK_PATH = "Model/alphazero_quick_final.pt"
+# AZ_QUICK_PATH = "Model/alphazero_quick_final.pt"
 AZ_PATH = "Model/alphazero_final.pt"
 
 # Single place to configure default headless matchup.
@@ -30,7 +30,7 @@ HEADLESS_DEFAULTS = {
     "agent1_model_path": DQN140_PATH,
     "agent1_az_simulations": 20,
     "agent2_type": "alphazero",
-    "agent2_model_path": AZ_QUICK_PATH,
+    "agent2_model_path": AZ_PATH,
     "agent2_az_simulations": 20,
 }
 
@@ -47,7 +47,7 @@ def default_model_path_for_agent(agent_name):
     if agent_name == "dqn":
         return DQN140_PATH
     if agent_name == "alphazero":
-        return AZ_QUICK_PATH
+        return AZ_PATH
     return None
 
 
