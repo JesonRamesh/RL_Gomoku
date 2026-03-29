@@ -188,6 +188,40 @@ python train_phase3_mixed.py        # Stage 4: mixed
 python train_phase4_threeway.py     # Stage 5: three-way curriculum
 ```
 
+### AlphaZero Training (`trainAlphaZero.py`)
+
+The AlphaZero script now supports a two-phase schedule so you can train with
+stronger search first, then fine-tune for lower-latency deployment.
+
+- Phase 1 (pretraining): use higher `--num-simulations` for cleaner MCTS targets
+- Phase 2 (fine-tuning): switch to lower `--finetune-num-simulations` to adapt
+  the network to your deployment search budget (for example 50 sims/move)
+
+Example (recommended when deploying at 50 sims/move):
+
+```bash
+python trainAlphaZero.py \
+  --iterations 100 \
+  --games-per-iteration 35 \
+  --epochs-per-iteration 3 \
+  --batch-size 256 \
+  --replay-size 120000 \
+  --learning-rate 3e-4 \
+  --num-simulations 100 \
+  --finetune-start-iteration 71 \
+  --finetune-num-simulations 50 \
+  --finetune-learning-rate 1.5e-4 \
+  --save-dir models_alphazero_two_phase \
+  --save-every 10
+```
+
+Notes:
+
+- If `--finetune-num-simulations` is omitted, training stays single-phase.
+- If `--finetune-start-iteration` is omitted, it defaults to 70% of total
+  iterations.
+- Iteration logs now include phase (`P1`/`FT`) and active MCTS simulations.
+
 ### Evaluation
 
 ```bash
@@ -309,6 +343,11 @@ Add uv packages
 
 ```bash
 uv sync
+```
+
+If for whatever reason the required dependencies are not added by default:
+
+```bash
 uv add pygame numpy matplotlib
 ```
 

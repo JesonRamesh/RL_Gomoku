@@ -146,6 +146,9 @@ def train_alphazero(
     temperature_moves: int,
     learning_rate: float,
     num_simulations: int,
+    finetune_start_iteration: int,
+    finetune_num_simulations: int | None,
+    finetune_learning_rate: float | None,
     save_dir: str,
     save_every: int,
 ):
@@ -178,13 +181,48 @@ def train_alphazero(
     print(f"Epochs/iteration: {epochs_per_iteration}")
     print(f"Batch size: {batch_size}")
     print(f"Replay size: {replay_size}")
-    print(f"MCTS simulations/move: {num_simulations}")
+    print(f"MCTS simulations/move (phase 1): {num_simulations}")
+    if finetune_num_simulations is not None:
+        print(
+            f"Fine-tune starts at iter: {finetune_start_iteration} | "
+            f"MCTS (phase 2): {finetune_num_simulations}"
+        )
+        if finetune_learning_rate is not None:
+            print(f"Learning rate (phase 2): {finetune_learning_rate}")
+    else:
+        print("Fine-tune phase: disabled")
     print("=" * 72)
 
     start_all = time.time()
+    in_finetune_phase = False
 
     for it in range(1, iterations + 1):
         it_start = time.time()
+
+        # Optional two-phase schedule: strong-search pretraining then
+        # low-search fine-tuning for faster deployment-time inference.
+        should_finetune = (
+            finetune_num_simulations is not None and it >= finetune_start_iteration
+        )
+        if should_finetune and not in_finetune_phase:
+            in_finetune_phase = True
+            if finetune_learning_rate is not None:
+                for param_group in optimizer.param_groups:
+                    param_group["lr"] = finetune_learning_rate
+            print(
+                f"\n>>> Entering fine-tune phase at iter {it}: "
+                f"num_simulations={finetune_num_simulations}"
+                + (
+                    f", lr={optimizer.param_groups[0]['lr']:.6g}"
+                    if finetune_learning_rate is not None
+                    else ""
+                )
+                + " <<<\n"
+            )
+
+        agent.num_simulations = (
+            finetune_num_simulations if should_finetune else num_simulations
+        )
 
         # 1) Self-play data generation
         generated_positions = 0
@@ -246,6 +284,8 @@ def train_alphazero(
 
         print(
             f"Iter {it:03d}/{iterations} | "
+            f"phase={'FT' if should_finetune else 'P1'} | "
+            f"sims={agent.num_simulations} | "
             f"games={games_per_iteration} | "
             f"positions={generated_positions} | "
             f"buffer={len(replay)} | "
@@ -280,9 +320,43 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--temperature-moves", type=int, default=12)
     parser.add_argument("--learning-rate", type=float, default=1e-3)
     parser.add_argument("--num-simulations", type=int, default=60)
+    parser.add_argument(
+        "--finetune-start-iteration",
+        type=int,
+        default=None,
+        help="Iteration index (1-based) to start phase-2 fine-tuning. "
+        "Default: disabled unless --finetune-num-simulations is set.",
+    )
+    parser.add_argument(
+        "--finetune-num-simulations",
+        type=int,
+        default=None,
+        help="Phase-2 MCTS simulations per move (for deployment-target tuning).",
+    )
+    parser.add_argument(
+        "--finetune-learning-rate",
+        type=float,
+        default=None,
+        help="Optional learning rate for phase-2 fine-tuning.",
+    )
     parser.add_argument("--save-dir", type=str, default="models_alphazero")
     parser.add_argument("--save-every", type=int, default=5)
-    return parser.parse_args()
+    args = parser.parse_args()
+
+    if args.finetune_num_simulations is not None:
+        if args.finetune_num_simulations <= 0:
+            raise ValueError("--finetune-num-simulations must be > 0")
+        if args.finetune_start_iteration is None:
+            args.finetune_start_iteration = max(1, int(args.iterations * 0.7))
+        if args.finetune_start_iteration < 1 or args.finetune_start_iteration > args.iterations:
+            raise ValueError(
+                "--finetune-start-iteration must be between 1 and --iterations"
+            )
+    else:
+        # Keep this ignored when no fine-tune phase is configured.
+        args.finetune_start_iteration = args.iterations + 1
+
+    return args
 
 
 if __name__ == "__main__":
@@ -297,6 +371,9 @@ if __name__ == "__main__":
         temperature_moves=args.temperature_moves,
         learning_rate=args.learning_rate,
         num_simulations=args.num_simulations,
+        finetune_start_iteration=args.finetune_start_iteration,
+        finetune_num_simulations=args.finetune_num_simulations,
+        finetune_learning_rate=args.finetune_learning_rate,
         save_dir=args.save_dir,
         save_every=args.save_every,
     )
