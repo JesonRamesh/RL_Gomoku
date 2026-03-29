@@ -63,6 +63,7 @@ FC(512 → 81)   ← Q-value for each board cell
 ```
 
 Training algorithm: **Double DQN**
+
 - Online network selects actions; target network evaluates them
 - Replay buffer: 100,000 experiences
 - Optimizer: Adam (lr = 1e-4), gamma = 0.99
@@ -84,13 +85,14 @@ Flatten → FC(32×9×9 → 81)   ← Q-values
 
 ## Curriculum Opponents
 
-| Agent | File | Strategy |
-|---|---|---|
-| `RandomAgent` | `agents/random_agent.py` | Uniform-random valid moves |
-| `ThreateningAgent` | `agents/threatening_agent.py` | Blocks 4-in-a-row with configurable probability |
-| `StrategicAgent` | `agents/strategic_agent.py` | Wins, blocks, extends sequences, uses opening patterns |
+| Agent              | File                          | Strategy                                               |
+| ------------------ | ----------------------------- | ------------------------------------------------------ |
+| `RandomAgent`      | `agents/random_agent.py`      | Uniform-random valid moves                             |
+| `ThreateningAgent` | `agents/threatening_agent.py` | Blocks 4-in-a-row with configurable probability        |
+| `StrategicAgent`   | `agents/strategic_agent.py`   | Wins, blocks, extends sequences, uses opening patterns |
 
 ### ThreateningAgent
+
 Parameterised by `block_probability` (0.0–1.0). Only detects and blocks immediate 4-in-a-row threats. Designed for gradual curriculum learning.
 
 ```python
@@ -99,6 +101,7 @@ opp = ThreateningAgent(player_id=-1, block_probability=0.5, board_size=9)
 ```
 
 ### StrategicAgent
+
 Priority: win immediately → block opponent win → extend 4-in-a-row → block 4-in-a-row → extend 3-in-a-row → opening pattern → random fallback. Parameterised by `skill_level` (0.0 = random, 1.0 = always strategic).
 
 ```python
@@ -120,6 +123,7 @@ Training progressed through multiple stages. All models target a **9×9 board** 
 ### Stage 2 — Shaped Rewards vs RandomAgent (`train_phase1_shaped.py`)
 
 Fine-tunes the Stage 1 model with intermediate rewards:
+
 - Created 3-in-a-row: `+0.15`
 - Created 4-in-a-row: `+0.40`
 - Blocked opponent 3-in-a-row: `+0.10`
@@ -219,32 +223,33 @@ class MyAgent(BaseAgent):
 
 ## Key Classes
 
-| Class | Location | Description |
-|---|---|---|
-| `BaseAgent` | `agents/base_agent.py` | Abstract base — implement `predict(board_state)` |
-| `GomokuLogic` | `game/logic.py` | Game rules, `make_move()`, win detection |
-| `GomokuEnv` | `game/gomoku_env.py` | RL env — `reset()`, `step(action)` |
-| `DQNAgent` (simple) | `agents/dqn_simple_jeson.py` | Production DQN agent |
-| `DQNAgent` (residual) | `agents/dqn_jeson.py` | Experimental deeper DQN agent |
-| `eval_agents()` | `game/match.py` | Headless evaluation, alternates first move |
+| Class                 | Location                     | Description                                      |
+| --------------------- | ---------------------------- | ------------------------------------------------ |
+| `BaseAgent`           | `agents/base_agent.py`       | Abstract base — implement `predict(board_state)` |
+| `GomokuLogic`         | `game/logic.py`              | Game rules, `make_move()`, win detection         |
+| `GomokuEnv`           | `game/gomoku_env.py`         | RL env — `reset()`, `step(action)`               |
+| `DQNAgent` (simple)   | `agents/dqn_simple_jeson.py` | Production DQN agent                             |
+| `DQNAgent` (residual) | `agents/dqn_jeson.py`        | Experimental deeper DQN agent                    |
+| `eval_agents()`       | `game/match.py`              | Headless evaluation, alternates first move       |
 
 ## Notable Changes vs Baseline Repository
 
-| Area | Change |
-|---|---|
-| Board size | Default changed from 15×15 to **9×9** |
-| Window size | Pygame window reduced from 900×700 to **650×550** |
-| `GomokuEnv` | Added shaped reward methods, `use_sparse_rewards` flag |
-| `main.py` | Now loads trained DQN agent for human-vs-AI play |
-| `.gitignore` | Added `*.pt`, model directories, archive, and dev artefacts |
-| New agents | `dqn_jeson.py`, `dqn_simple_jeson.py`, `threatening_agent.py`, `strategic_agent.py` |
-| New scripts | Full training pipeline (5 stages) + evaluation scripts |
+| Area         | Change                                                                              |
+| ------------ | ----------------------------------------------------------------------------------- |
+| Board size   | Default changed from 15×15 to **9×9**                                               |
+| Window size  | Pygame window reduced from 900×700 to **650×550**                                   |
+| `GomokuEnv`  | Added shaped reward methods, `use_sparse_rewards` flag                              |
+| `main.py`    | Now loads trained DQN agent for human-vs-AI play                                    |
+| `.gitignore` | Added `*.pt`, model directories, archive, and dev artefacts                         |
+| New agents   | `dqn_jeson.py`, `dqn_simple_jeson.py`, `threatening_agent.py`, `strategic_agent.py` |
+| New scripts  | Full training pipeline (5 stages) + evaluation scripts                              |
 
 ## Setup for UCL remote GPU access for training
 
 Navigate to /scratch0/$USER
 Clone Repo: https://github.com/JesonRamesh/RL_Gomoku.git
 run: cd RL_Gomoku
+
 ```bash
 cd /scratch0/$USER # replace $USER with user
 git clone https://github.com/JesonRamesh/RL_Gomoku.git
@@ -317,7 +322,7 @@ uv add torch --index https://download.pytorch.org/whl/$CUDAVERSION # replace wit
 [[tool.uv.index]]
 name = "pytorch-cuda"
 # Replace with whatever cuda version from nvidia-smi
-url = "https://download.pytorch.org/whl/cu130" 
+url = "https://download.pytorch.org/whl/cu130"
 explicit = true
 
 [tool.uv.sources]
@@ -325,10 +330,10 @@ torch = { index = "pytorch-cuda" }
 ```
 
 Then run:
+
 ```bash
 uv add torch
 ```
-
 
 Activate uv environment
 
