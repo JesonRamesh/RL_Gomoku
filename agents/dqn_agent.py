@@ -1,8 +1,3 @@
-"""
-DQN Agent with improved architecture for strategic play.
-Based on dqn_simple.py with enhancements.
-"""
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -13,10 +8,7 @@ from agents.base_agent import BaseAgent
 
 
 class DQNetwork(nn.Module):
-    """
-    Deeper CNN with residual connections for better pattern recognition.
-    """
-
+    
     def __init__(self, board_size=9):
         super(DQNetwork, self).__init__()
         self.board_size = board_size
@@ -69,10 +61,7 @@ class DQNetwork(nn.Module):
         return q_values
 
 
-def preprocess_board(board, current_player):
-    """
-    Preprocess the board state into a 3-channel tensor.
-    """
+def preprocess_board(board, current_player): 
     board_size = board.shape[0]
     state = np.zeros((3, board_size, board_size), dtype=np.float32)
 
@@ -84,7 +73,6 @@ def preprocess_board(board, current_player):
 
 
 class PrioritizedReplayBuffer:
-    """Prioritized Experience Replay for better learning from important experiences."""
 
     def __init__(self, capacity=100000, alpha=0.6):
         self.capacity = capacity
@@ -142,12 +130,6 @@ class PrioritizedReplayBuffer:
 
 
 class DQNAgent(BaseAgent):
-    """
-    Enhanced DQN Agent with:
-    - Dueling architecture
-    - Prioritized replay
-    - Double DQN
-    """
 
     def __init__(
         self,
