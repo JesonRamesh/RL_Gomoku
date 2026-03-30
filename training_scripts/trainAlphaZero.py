@@ -1,11 +1,7 @@
 """
-AlphaZero self-play training script for Gomoku.
-
-This script trains AlphaZeroPolicyValueNet via:
-1) Self-play games using MCTS visit distributions as policy targets
-2) Supervised updates on (state, policy_target, value_target)
-
-Saved model files are network weights only and can be loaded by AlphaZeroAgent.
+This script trains via:
+- self-play games using MCTS visit distributions as policy targets
+- supervised updates on (state, policy_target, value_target)
 """
 
 import argparse
