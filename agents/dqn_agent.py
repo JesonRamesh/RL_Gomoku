@@ -471,7 +471,9 @@ class DQNAgent(BaseAgent):
         if isinstance(checkpoint, dict) and "q_network_state_dict" in checkpoint:
             self.q_network.load_state_dict(checkpoint["q_network_state_dict"])
             if "target_network_state_dict" in checkpoint:
-                self.target_network.load_state_dict(checkpoint["target_network_state_dict"])
+                self.target_network.load_state_dict(
+                    checkpoint["target_network_state_dict"]
+                )
             else:
                 self.target_network.load_state_dict(self.q_network.state_dict())
             if "optimizer_state_dict" in checkpoint:

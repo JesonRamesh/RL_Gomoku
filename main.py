@@ -376,7 +376,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--az-simulations",
         type=int,
-        default=20,
+        default=200,
         help="MCTS simulations per move when using --opponent alphazero",
     )
     parser.add_argument(
