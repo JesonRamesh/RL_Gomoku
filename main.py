@@ -185,6 +185,8 @@ def main(
     board_size=HEADLESS_DEFAULTS["board_size"],
     opponent="dqn",
     opponent_model=None,
+    # non_headless running of agent vs agent
+    player1_model = None,
     model_path=None,
     az_simulations=20,
     agent1_type=HEADLESS_DEFAULTS["agent1_type"],
@@ -244,7 +246,18 @@ def main(
     game = GomokuLogic(board_size=board_size)
     board = Board(game)
 
-    player_1 = HumanAgent(player_id=1)
+    
+    if player1_model is not None:
+        p1_type, p1_path = resolve_model_preset(player1_model)
+        player_1 = build_agent(
+            agent_name=p1_type,
+            player_id=1,
+            board_size=board_size,
+            model_path=p1_path,
+            az_simulations=az_simulations,
+        )
+    else:
+        player_1 = HumanAgent(player_id=1)
 
     # Opponent selected by CLI option.
     player_2 = build_opponent(
@@ -360,6 +373,15 @@ if __name__ == "__main__":
         choices=HEADLESS_AGENT_CHOICES,
         help="Opponent type for interactive mode",
     )
+
+    parser.add_argument(
+        "--player1-model",
+        type=str,
+        default=None,
+        choices=list(MODEL_PRESETS.keys()),
+        help="Interactive mode: use an AI for player 1 (e.g. gen2)",
+    )
+
     parser.add_argument(
         "--model-path",
         type=str,
@@ -461,4 +483,5 @@ if __name__ == "__main__":
         agent2_model=args.agent2_model,
         agent2_model_path=args.agent2_model_path,
         agent2_az_simulations=args.agent2_az_simulations,
+        player1_model=args.player1_model,
     )
