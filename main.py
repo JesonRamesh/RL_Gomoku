@@ -24,14 +24,14 @@ AZ_PATH = "Model/alphazero_final.pt"
 
 # Single place to configure default headless matchup.
 HEADLESS_DEFAULTS = {
-    "num_games": 2000,
+    "num_games": 100,
     "board_size": 9,
     "agent1_type": "dqn",
     "agent1_model_path": DQN140_PATH,
     "agent1_az_simulations": 20,
     "agent2_type": "alphazero",
     "agent2_model_path": AZ_PATH,
-    "agent2_az_simulations": 20,
+    "agent2_az_simulations": 50,
 }
 
 HEADLESS_AGENT_CHOICES = [
