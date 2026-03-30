@@ -1,6 +1,6 @@
 """
 DQN Agent with improved architecture for strategic play.
-Based on dqn_simple_jeson.py with enhancements.
+Based on dqn_simple.py with enhancements.
 """
 
 import torch
@@ -470,10 +470,16 @@ class DQNAgent(BaseAgent):
         # Full training checkpoint format.
         if isinstance(checkpoint, dict) and "q_network_state_dict" in checkpoint:
             self.q_network.load_state_dict(checkpoint["q_network_state_dict"])
-            self.target_network.load_state_dict(checkpoint["target_network_state_dict"])
-            self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
-            self.epsilon = checkpoint["epsilon"]
-            self.steps = checkpoint["steps"]
+            if "target_network_state_dict" in checkpoint:
+                self.target_network.load_state_dict(checkpoint["target_network_state_dict"])
+            else:
+                self.target_network.load_state_dict(self.q_network.state_dict())
+            if "optimizer_state_dict" in checkpoint:
+                self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+            if "epsilon" in checkpoint:
+                self.epsilon = checkpoint["epsilon"]
+            if "steps" in checkpoint:
+                self.steps = checkpoint["steps"]
             if "beta" in checkpoint:
                 self.beta = checkpoint["beta"]
             print("Model loaded successfully.")
