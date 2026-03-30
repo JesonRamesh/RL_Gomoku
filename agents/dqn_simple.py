@@ -8,9 +8,6 @@ from agents.base_agent import BaseAgent
 
 
 class DQNetwork(nn.Module):
-    """
-    Simple CNN architecture (proven to achieve 100% win rate).
-    """
     def __init__(self, board_size=9):
         super(DQNetwork, self).__init__()
         self.board_size = board_size

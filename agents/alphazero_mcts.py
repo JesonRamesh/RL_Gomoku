@@ -1,8 +1,3 @@
-"""
-AlphaZero MCTS with PUCT selection for 9x9 Gomoku.
-Implements SELECT → EXPAND → EVALUATE → BACKPROPAGATE simulation loop.
-"""
-
 import numpy as np
 import torch
 
@@ -50,14 +45,6 @@ class AlphaZeroNode:
 
 # Candidate Moves
 def get_candidate_moves(board: np.ndarray, board_size: int = 9, dist: int = 2) -> list:
-    """
-    Return empty cells within `dist` of any existing stone.
-    Reduces branching factor from 81 to ~15-25 without pruning strategically
-    relevant moves (stones far from existing play are never good in Gomoku).
-
-    Special case: if board is empty, return the central 5x5 region to encourage
-    centre openings (all 9x9 openings near the centre are equally valid).
-    """
     if not np.any(board != 0):
         c = board_size // 2
         return [(r, col) for r in range(c - 2, c + 3)
@@ -160,15 +147,10 @@ def _simulate(root: AlphaZeroNode, board: np.ndarray, player: int,
 
     # Expand and Evaluate
     if node.is_terminal:
-        # Terminal: the player who just moved (previous player) won or drew.
-        # current_player has just been flipped, so the mover was -current_player.
-        # We need value from current_player's perspective (the one who did NOT win).
         value = -1.0  # the previous player won, so current_player lost
         # Check for draw: if no empty cells remain
         if not np.any(current_board == 0) and not _check_win(
                 current_board,
-                # Find last placed stone: the board is already updated
-                # We can't easily find it here; treat as loss and let backprop handle
                 (0, 0), -current_player, board_size):
             value = 0.0
     else:
@@ -190,11 +172,10 @@ def run_mcts(board: np.ndarray, player: int, net: AlphaZeroNet,
              dirichlet_alpha: float, dirichlet_eps: float,
              board_size: int = 9) -> tuple:
     """
-    Run MCTS from the given board position for `num_simulations` simulations.
+    Run MCTS:
 
-    Dirichlet noise is added to root priors when dirichlet_eps > 0 (training only).
-    Noise encourages diverse openings; see Silver et al. 2018 Methods 'Self-play'.
-
+    Dirichlet noise is added to root priors when dirichlet_eps > 0 
+    
     Returns:
         root: AlphaZeroNode — fully built search tree
         pi:   np.ndarray (board_size²,) — normalised visit counts (training target)

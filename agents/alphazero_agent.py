@@ -1,15 +1,3 @@
-"""
-AlphaZero-style agent for Gomoku.
-
-This module provides:
-- A policy-value network with residual blocks
-- PUCT-based Monte Carlo Tree Search
-- A BaseAgent-compatible AlphaZeroAgent class with predict(board_state)
-
-The implementation is inference-ready. You can also use self_play_move(...) to
-collect policy targets (visit distributions) for AlphaZero-style training loops.
-"""
-
 import math
 from typing import Dict, List, Optional, Tuple
 

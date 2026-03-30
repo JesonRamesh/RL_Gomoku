@@ -1,9 +1,3 @@
-"""
-Enhanced Threatening Agent with Strategic Offense
-
-filepath: agents/strategic_agent.py
-"""
-
 import numpy as np
 import random
 from agents.base_agent import BaseAgent
@@ -11,9 +5,7 @@ from agents.base_agent import BaseAgent
 
 class StrategicAgent(BaseAgent):
     """
-    Agent with both offensive and defensive strategy.
-    
-    Unlike ThreateningAgent (only blocks), StrategicAgent:
+    StrategicAgent:
     - Builds own threats (3-in-a-row patterns)
     - Blocks opponent threats
     - Uses varied opening patterns
@@ -60,33 +52,23 @@ class StrategicAgent(BaseAgent):
         # Update pattern coordinates:
         return [
             # Center openings
-            [(center, center)],           # (4, 4)
+            [(center, center)],           
             [(center-1, center), (center, center-1)],
             
-            # Corner openings (adjust to 9×9)
-            [(2, 2), (3, 3)],             # Was (3, 3), (4, 4)
-            [(6, 6), (5, 5)],             # Was (11, 11), (10, 10)
+            # Corner openings 
+            [(2, 2), (3, 3)],             
+            [(6, 6), (5, 5)],            
             
             # Side openings
-            [(center, 2), (center, 3)],   # Was (center, 3), (center, 4)
+            [(center, 2), (center, 3)],   
             [(2, center), (3, center)],
             
             # Diagonals
-            [(3, 3), (4, 4), (5, 5)],     # Was (5, 5), (6, 6), (7, 7)
+            [(3, 3), (4, 4), (5, 5)],     
         ]
     
     def predict(self, board_state: np.ndarray) -> tuple:
-        """
-        Strategic decision-making.
-        
-        Priority:
-        1. Win if possible
-        2. Block opponent's win
-        3. Extend own 3-in-a-row (offensive)
-        4. Block opponent's 3-in-a-row (defensive)
-        5. Follow opening pattern (early game)
-        6. Random move (fallback)
-        """
+    
         # Decide: Strategic or random?
         if random.random() > self.skill_level:
             # Random move

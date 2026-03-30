@@ -1,11 +1,5 @@
 """
 Training script for DQN agent with shaped rewards.
-
-Key improvements:
-1. Shaped rewards that teach blocking and threat creation
-2. Enhanced DQN with dueling architecture
-3. Prioritized experience replay
-4. Adaptive curriculum
 """
 
 import numpy as np

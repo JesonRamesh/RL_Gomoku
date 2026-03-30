@@ -1,9 +1,3 @@
-"""
-AlphaZero neural network for 9x9 Gomoku.
-ResNet tower (6 blocks x 128 filters) with shared body and dual policy/value heads.
-Reference: Silver et al. 2018 (Science), He et al. 2016 (CVPR).
-"""
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -90,13 +84,6 @@ class AlphaZeroNet(nn.Module):
 
 
 def preprocess_board(board: np.ndarray, current_player: int) -> np.ndarray:
-    """
-    Encode board as 3-channel float32 array from current player's perspective.
-
-    Channel 0: current player's stones
-    Channel 1: opponent's stones
-    Channel 2: constant plane = current_player value (+1 or -1)
-    """
     board_size = board.shape[0]
     state = np.zeros((3, board_size, board_size), dtype=np.float32)
     state[0] = (board == current_player).astype(np.float32)

@@ -1,47 +1,10 @@
 """
 Combined Long Run v2: Adaptive Curriculum with targeted improvements
 
-Why train_combined_longrun.py kept failing:
-    - Fixed phase schedules have no feedback mechanism.
-    - Sparse Phase A → no gradient signal (Loss = 0, agent learns nothing).
-    - Positive shaped Phase A → reward hacking (agent chases shaped rewards,
-      win rate declines 58%→42% while episode reward stays constant at ~1.4).
-    - Root cause: without adaptive curriculum, once reward hacking starts,
-      nothing stops it. The schedule runs regardless of agent performance.
-
-Why the adaptive curriculum approach works:
-    - Adaptive curriculum with demotion: when win rate < 25%, agent drops back
-      to an easier opponent. Against easier opponents, wins are frequent and
-      terminal ±1.0 dominates shaped rewards again. Q-values self-correct.
-
-This script = train_shaped.py with 3 targeted improvements from our failures:
-
-    1. Ignore penalty enabled from episode 1 — proven approach.
-       The "ignore penalty causes negative spiral at high ε" failure only occurred
-       with FIXED phases that forced strategic opponents from the start. With
-       adaptive curriculum at Level 0 (Random), the random opponent creates threats
-       rarely (~2-3 per game), so the penalty fires rarely and keeps losses clearly
-       negative. Disabling it (previous attempt) made losses near-zero, destroying
-       the Q-network's ability to distinguish wins from losses → 28% vs Random.
-
-    2. Minimum 25% random anchor:
-       - Previous anchor dropped to 15% at high levels
-       - Testing proved that 20% causes strategy collapse; 25% is the floor
-       - New formula: max(0.25, 0.4 - level * 0.02) — never drops below 25%
-
-    3. Win detection by actual game outcome, not episode_reward (bug fix):
-       - Previous approach used episode_reward > 0.5 to detect wins
-       - Shaped rewards inflate episode_reward even for losses
-       - A loss with many shaped rewards: episode_reward ≈ +0.5 → false "win"
-       - This causes over-eager promotion and curriculum instability
-       - Fix: track terminal reward separately; curriculum only uses real wins
-
-Architecture: DQNAgentEnhanced (Dueling DQN + PER + AdamW) — unchanged.
-Environment: GomokuEnvShaped — unchanged, just passes ignore_penalty_enabled.
-Curriculum:  11 levels (Random → Strat-0.9 → MM-0.7).
-
-Load: nothing — fresh start
-Save: models_combined_v2/
+This script = train_shaped.py with 3 targeted improvements:
+    1. Ignore penalty enabled from episode 1
+    2. Minimum 25% random anchor
+    3. Win detection by actual game outcome, not episode_reward (bug fix)
 """
 
 import numpy as np
@@ -59,7 +22,7 @@ from agents.strategic_agent import StrategicAgent
 from agents.minimax_agent import MinimaxAgent
 
 
-# ── Evaluation (always sparse, always ε=0) ───────────────────────────────────
+#Evaluation (always sparse, always ε=0)
 
 def evaluate_agent(agent, opponent, board_size, num_games=30):
     """Evaluate agent win rate with sparse rewards."""
@@ -110,8 +73,7 @@ def run_standard_eval(agent, board_size, num_games, label):
     return r, s03, s05, s07
 
 
-# ── Main training function ────────────────────────────────────────────────────
-
+# Main training function
 def train_combined_v2(
     total_episodes=100000,
     batch_size=64,
@@ -124,19 +86,19 @@ def train_combined_v2(
 ):
     os.makedirs(save_dir, exist_ok=True)
 
-    # ── Agent ─────────────────────────────────────────────────────────────────
+    #Agent
     agent = DQNAgentEnhanced(player_id=1, board_size=board_size)
     agent.epsilon = 1.0
     agent.epsilon_end = 0.02
     agent.epsilon_decay = 0.99995   # 1.0 → 0.02 over ~100k episodes
 
-    # ── Fixed opponents ───────────────────────────────────────────────────────
+    #Fixed opponents
     random_opp   = RandomAgent(player_id=-1)
     strat_opp    = StrategicAgent(player_id=-1, skill_level=0.5, board_size=board_size)
     minimax_opp  = MinimaxAgent(player_id=-1, board_size=board_size,
                                 time_limit=0.05, skill_level=0.5)
 
-    # ── Curriculum levels ─────────────────────────────────────────────────────
+    # Curriculum levels
     # Levels 0–8: StrategicAgent at increasing skill
     # Levels 9–11: MinimaxAgent at increasing skill
     def make_strat(skill):
@@ -171,7 +133,7 @@ def train_combined_v2(
     recent_wins  = deque(maxlen=100)   # 1 = won, 0 = lost (curriculum games only)
     games_at_level = 0
 
-    # ── Tracking ──────────────────────────────────────────────────────────────
+    # Tracking
     all_rewards, all_losses = [], []
     level_history = []
     eval_eps, wr_rand, wr_s03, wr_s05, wr_s07 = [], [], [], [], []
@@ -195,7 +157,7 @@ def train_combined_v2(
     start_time = time.time()
 
     for episode in range(total_episodes):
-        # ── Select curriculum opponent ─────────────────────────────────────────
+        # Select curriculum opponent
         level_name, opp_getter = difficulty_levels[current_level]
         curriculum_opponent = opp_getter()
 
@@ -211,24 +173,16 @@ def train_combined_v2(
             opponent = curriculum_opponent
             is_curriculum_game = True
 
-        # ── Alternate first player ─────────────────────────────────────────────
+        #Alternate first player
         agent_first = (episode % 2 == 0)
         agent.player_id    = 1  if agent_first else -1
         opponent.player_id = -1 if agent_first else 1
 
-        # ── Environment ───────────────────────────────────────────────────────
-        # Full shaped rewards including ignore penalty from episode 1.
-        # The ignore penalty does NOT cause a negative spiral at Level 0 (Random):
-        #   a random opponent creates 4-in-a-row threats only ~2-3 times per game,
-        #   so the penalty fires rarely and usefully — it keeps losses clearly negative
-        #   (-0.7 net reward) so the Q-network can distinguish wins from losses.
-        # Disabling the ignore penalty (previous attempt) made losses near-zero reward,
-        #   destroying the Q-network's ability to learn that losing is bad → 28% vs Random.
         logic = GomokuLogic(board_size=board_size)
         env   = GomokuEnvShaped(logic, positive_rewards=True,
                                 ignore_penalty_enabled=True)
 
-        # ── Play episode ───────────────────────────────────────────────────────
+
         state = env.reset()
         ep_reward = 0.0
         terminal_win = False   # IMPROVEMENT 3: track actual game outcome
@@ -268,12 +222,12 @@ def train_combined_v2(
         all_rewards.append(ep_reward)
         level_history.append(current_level)
 
-        # ── Curriculum: update win tracking (curriculum games only) ───────────
+
         if is_curriculum_game:
             recent_wins.append(1 if terminal_win else 0)
             games_at_level += 1
 
-        # ── Curriculum: check promotion / demotion ────────────────────────────
+
         if len(recent_wins) >= 50 and games_at_level >= min_games_at_level:
             win_rate = np.mean(recent_wins)
 
@@ -300,7 +254,6 @@ def train_combined_v2(
                       f"{difficulty_levels[current_level][0]} "
                       f"(win rate: {win_rate:.1%}) <<<\n")
 
-        # ── Logging every 500 episodes ─────────────────────────────────────────
         if (episode + 1) % 500 == 0:
             avg_r  = np.mean(all_rewards[-500:])
             avg_l  = np.mean(all_losses[-1000:]) if all_losses else 0.0
@@ -312,7 +265,7 @@ def train_combined_v2(
                   f"Rew: {avg_r:>5.2f} | Loss: {avg_l:.4f} | "
                   f"Eps: {agent.epsilon:.3f} | {elapsed:.1f}m")
 
-        # ── Evaluation every 2000 episodes ────────────────────────────────────
+
         if (episode + 1) % 2000 == 0:
             r, s03, s05, s07 = run_standard_eval(
                 agent, board_size, 50, f"ep {episode+1}")
@@ -336,12 +289,12 @@ def train_combined_v2(
                 agent.save_model(os.path.join(save_dir, "best_s03.pt"))
                 print(f"  [Save] New best vs S-0.3: {s03:.1f}%")
 
-        # ── Checkpoint every 10k episodes ─────────────────────────────────────
+        # Checkpoint every 10k episodes 
         if (episode + 1) % 10000 == 0:
             agent.save_model(
                 os.path.join(save_dir, f"ep{episode+1}.pt"))
 
-    # ── Final save and evaluation ─────────────────────────────────────────────
+    # Final save and evaluation
     agent.save_model(os.path.join(save_dir, "final.pt"))
     elapsed = time.time() - start_time
 
@@ -371,7 +324,7 @@ def train_combined_v2(
     print(f"  vs Random: 98.5% | vs S-0.3: 66.5% | vs S-0.5: 43.5% | vs MM-0.3: ~5%")
     print("=" * 65)
 
-    # ── Training curves plot ───────────────────────────────────────────────────
+    # Training curves plot
     if eval_eps:
         plt.figure(figsize=(16, 4))
 

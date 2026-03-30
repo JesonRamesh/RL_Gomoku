@@ -1,16 +1,9 @@
 """
 Minimax Agent with Alpha-Beta Pruning for Gomoku
 
-A strong deterministic agent that searches the game tree to find optimal moves.
-Uses alpha-beta pruning for efficiency and a sophisticated evaluation function
-that considers pattern threats, positional value, and sequence analysis.
-
-Optimizations:
-- Transposition table for caching evaluated positions
-- Aggressive move pruning (only near existing pieces)
-- Iterative deepening with time limit
-- Move ordering for maximum alpha-beta cutoffs
-- Early threat detection to skip deep search
+-searches game tree for optimal moves
+-uses alpha-beta pruning for efficiency
+-considers threats, position and sequences
 """
 
 import numpy as np
@@ -20,17 +13,6 @@ import time
 
 
 class MinimaxAgent(BaseAgent):
-    """
-    Minimax agent with alpha-beta pruning for Gomoku.
-    
-    Features:
-    - Alpha-beta pruning for efficient tree search
-    - Transposition table for position caching
-    - Iterative deepening with time limit (default 2s)
-    - Sophisticated evaluation function
-    - Aggressive move ordering for better pruning
-    """
-    
     # Pattern scores (tuned for Gomoku)
     SCORES = {
         'five': 100000000,
@@ -52,16 +34,9 @@ class MinimaxAgent(BaseAgent):
         skill_level: float = 1.0
     ):
         """
-        Initialize the Minimax agent.
-        
-        Args:
-            player_id: 1 or -1
-            board_size: Size of the board (default 9)
-            depth: Maximum search depth (default 6 with iterative deepening)
-            time_limit: Time limit in seconds per move (default 2.0)
-            skill_level: 0.0-1.0, probability of playing optimal move (default 1.0)
-                        At 0.5, plays randomly 50% of the time
-                        At 0.0, always plays randomly (like RandomAgent)
+        skill_level: 0.0-1.0, probability of playing optimal move (default 1.0)
+                    At 0.5, plays randomly 50% of the time
+                    At 0.0, always plays randomly (like RandomAgent)
         """
         super().__init__(player_id)
         self.board_size = board_size

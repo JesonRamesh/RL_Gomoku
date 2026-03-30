@@ -1,15 +1,5 @@
 """
 Phase 2 Training: Self-Play with Sparse Rewards
-
-The agent trains against a frozen copy of itself.
-Every sync_frequency episodes, the frozen copy updates to match the agent.
-
-Why this works:
-    - The opponent is always the same strength as the agent (no skill gap).
-    - Strategic patterns emerge naturally: simple 3-in-a-rows get blocked,
-      so the agent must discover forks and deeper patterns to win.
-    - Sparse rewards only — the win/loss signal stays clean and unbiased.
-    - Difficulty scales automatically as the agent improves.
 """
 
 import numpy as np

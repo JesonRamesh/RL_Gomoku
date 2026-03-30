@@ -1,14 +1,5 @@
 """
 Phase 4 Training: Three-Way Mixed Opponents (Self-Play + Random + Strategic-0.3)
-
-Extends Phase 3 by introducing StrategicAgent-0.3 into the opponent pool.
-
-Opponent split:
-    - 60% frozen self-play copy    (strategic development)
-    - 25% RandomAgent              (skill anchoring, prevents Q-value drift)
-    - 15% StrategicAgent-0.3       (exposure to rule-based strategic patterns)
-
-Also tracks a separate best-strategic checkpoint evaluated every 500 episodes.
 """
 
 import numpy as np
@@ -145,13 +136,7 @@ def train_threeway(num_episodes=6000, warmup_episodes=500, batch_size=32,
                    sync_frequency=500, save_frequency=500,
                    eval_frequency=100, eval_games=50, eval_strategic_frequency=500,
                    board_size=9, save_dir="models_phase4_v2"):
-    """
-    Phase 4 main training loop: three-way mixed opponent training with buffer warmup.
 
-    Selects from frozen self-play, RandomAgent, and StrategicAgent-0.3 each episode
-    according to the configured ratios. Evaluates vs Strategic-0.3 every
-    eval_strategic_frequency episodes and saves the best strategic checkpoint separately.
-    """
     assert self_play_ratio + random_ratio <= 1.0, "Ratios must sum to at most 1.0"
     strategic_ratio = 1.0 - self_play_ratio - random_ratio
 
