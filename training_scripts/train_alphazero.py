@@ -1,17 +1,12 @@
 """
 AlphaZero self-play training loop for 9x9 Gomoku.
-
-Three-phase iteration:
   1. Self-play:  best network generates games → training examples with 8x augmentation
   2. Train:      challenger network trains on replay buffer samples
   3. Evaluate:   challenger vs best (40 games); promoted if win rate >= 55%
-
 Usage:
   python train_alphazero.py --mode test   # 3 iterations, ~20-30 min  (convergence check)
   python train_alphazero.py --mode m4     # 80 iterations, ~8-10 hrs  (M4 MacBook full run)
   python train_alphazero.py --mode full   # 100 iterations, paper settings (GPU recommended)
-
-Reference: Silver et al. 2018 (Science 362), Silver et al. 2017 (Nature 550).
 """
 
 import os
@@ -30,10 +25,7 @@ from agents.alphazero_mcts import run_mcts, get_pi_and_move
 from game.logic import GomokuLogic
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Device
-# ─────────────────────────────────────────────────────────────────────────────
-
 def get_device() -> torch.device:
     if torch.cuda.is_available():
         return torch.device('cuda')
@@ -42,10 +34,7 @@ def get_device() -> torch.device:
     return torch.device('cpu')
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Data Augmentation
-# ─────────────────────────────────────────────────────────────────────────────
-
 def augment_example(board: np.ndarray, pi: np.ndarray, z: float,
                     player: int, board_size: int = 9) -> list:
     """
