@@ -4,6 +4,7 @@ import os
 import threading
 import pygame
 import argparse
+import time
 
 from agents.dqn_agent import DQNAgent
 from agents.dqn_simple import DQNAgent as DQNSimpleAgent
@@ -190,6 +191,7 @@ def main(
     opponent_model=None,
     # non_headless running of agent vs agent
     player1_model = None,
+    move_delay=1.0,
     model_path=None,
     az_simulations=20,
     agent1_type=HEADLESS_DEFAULTS["agent1_type"],
@@ -346,6 +348,7 @@ def main(
                 row, col = move
                 try:
                     game.make_move(row, col)
+                    time.sleep(move_delay) 
                 except ValueError:
                     print(
                         f"Agent {current_agent.player_id} attempted an invalid move at {row}, {col}"
@@ -462,6 +465,12 @@ if __name__ == "__main__":
         default=HEADLESS_DEFAULTS["agent2_az_simulations"],
         help="Headless mode: MCTS simulations per move for agent2 when AlphaZero",
     )
+    parser.add_argument(
+        "--move-delay",
+        type=float,
+        default=1.0,
+        help="Seconds to pause between AI moves in interactive mode (default: 1.0)",
+    )
     args = parser.parse_args()
 
     if args.list_models:
@@ -487,4 +496,5 @@ if __name__ == "__main__":
         agent2_model_path=args.agent2_model_path,
         agent2_az_simulations=args.agent2_az_simulations,
         player1_model=args.player1_model,
+        move_delay=args.move_delay, 
     )
