@@ -25,9 +25,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
 
+import matplotlib
+
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 from agents.alphazero_agent import AlphaZeroAgent
+from agents.dqn_agent import DQNAgent
 from agents.minimax_agent import MinimaxAgent
 from agents.random_agent import RandomAgent
 from agents.strategic_agent import StrategicAgent
@@ -82,6 +86,13 @@ def _new_alphazero(
         num_res_blocks=6,
     )
     agent.load_model(model_path)
+    return agent
+
+
+def _new_dqn(model_path: str, board_size: int) -> DQNAgent:
+    agent = DQNAgent(player_id=-1, board_size=board_size)
+    agent.load_model(model_path)
+    agent.epsilon = 0.0
     return agent
 
 
@@ -191,6 +202,7 @@ def _plot_final_bars(rows: list[OpponentEval], out_path: str) -> None:
 
     palette = [
         "#2ca02c",  # Random
+        "#6a4c93",  # DQN140
         "#8ecae6",  # Strat 0.3
         "#219ebc",  # Strat 0.5
         "#126782",  # Strat 0.7
@@ -272,6 +284,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--output-dir", type=str, default="results/alphazero_benchmarks"
     )
+    parser.add_argument("--dqn-model", type=str, default="Model/finaldqn140.pt")
 
     parser.add_argument("--board-size", type=int, default=9)
     parser.add_argument("--az-simulations", type=int, default=50)
@@ -369,6 +382,13 @@ def main() -> None:
         num_simulations=args.az_simulations,
     )
 
+    dqn_model = args.dqn_model
+    if not os.path.exists(dqn_model):
+        print(f"Warning: DQN model not found at {dqn_model}. Skipping DQN comparison.")
+        dqn_agent = None
+    else:
+        dqn_agent = _new_dqn(model_path=dqn_model, board_size=args.board_size)
+
     final_suite = [
         ("Random", RandomAgent(-1)),
         ("S03", StrategicAgent(-1, skill_level=0.3, board_size=args.board_size)),
@@ -402,6 +422,9 @@ def main() -> None:
             ),
         ),
     ]
+
+    if dqn_agent is not None:
+        final_suite.insert(1, ("DQN140", dqn_agent))
 
     final_rows: list[OpponentEval] = []
     for name, opp in final_suite:
