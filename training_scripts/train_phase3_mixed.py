@@ -1,10 +1,5 @@
 """
 Phase 3 Training: Mixed Opponents (Self-Play + RandomAgent)
-
-Builds on Phase 2 with two improvements:
-    - Buffer warmup: 500 episodes with no weight updates before training begins.
-    - Mixed opponents: 70% frozen self-play, 30% RandomAgent to prevent
-      strategy collapse and keep defensive Q-values calibrated.
 """
 
 import numpy as np
