@@ -29,6 +29,7 @@ MODEL_PRESETS = {
 }
 
 DEFAULT_DQN_MODEL = "gen3"
+DEFAULT_DQN_SIMPLE_MODEL = "gen2"
 DEFAULT_AZ_MODEL = "gen4"
 
 # Single place to configure default headless matchup.
@@ -56,8 +57,10 @@ HEADLESS_AGENT_CHOICES = [
 
 
 def default_model_path_for_agent(agent_name):
-    if agent_name in ("dqn", "dqn_simple"):
+    if agent_name == "dqn":
         return MODEL_PRESETS[DEFAULT_DQN_MODEL]["path"]
+    if agent_name == "dqn_simple":
+        return MODEL_PRESETS[DEFAULT_DQN_SIMPLE_MODEL]["path"]
     if agent_name == "alphazero":
         return MODEL_PRESETS[DEFAULT_AZ_MODEL]["path"]
     return None
