@@ -1,12 +1,3 @@
-"""
-Gomoku Environment with Strong Shaped Rewards
-
-This environment provides meaningful intermediate rewards to teach:
-1. Blocking opponent threats (CRITICAL)
-2. Creating own threats
-3. Penalizing ignoring dangerous situations
-"""
-
 import numpy as np
 from game.logic import GomokuLogic
 
