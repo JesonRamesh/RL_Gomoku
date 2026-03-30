@@ -348,7 +348,10 @@ def parse_args() -> argparse.Namespace:
             raise ValueError("--finetune-num-simulations must be > 0")
         if args.finetune_start_iteration is None:
             args.finetune_start_iteration = max(1, int(args.iterations * 0.7))
-        if args.finetune_start_iteration < 1 or args.finetune_start_iteration > args.iterations:
+        if (
+            args.finetune_start_iteration < 1
+            or args.finetune_start_iteration > args.iterations
+        ):
             raise ValueError(
                 "--finetune-start-iteration must be between 1 and --iterations"
             )
